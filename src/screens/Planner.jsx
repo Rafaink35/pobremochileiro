@@ -1,3 +1,4 @@
+import { FxCard } from '../components/FxCard.jsx';
 import {
   ArrowUpRight,
   Bookmark,
@@ -104,8 +105,9 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
             <span>Limite informado</span>
             <strong>{budget.trim() ? `R$ ${budget}` : 'A definir'}</strong>
           </div>
+          <FxCard budget={budget} />
           <p className="summary-warning">
-            Ainda não há cotações conectadas. Este rascunho não calcula nem confirma custos reais.
+            O câmbio é só referência. Este rascunho não calcula nem confirma custos de viagem.
           </p>
           <button className="btn-outline full" onClick={onSaveDraft}>
             <Bookmark size={16} aria-hidden="true" /> Guardar rascunho

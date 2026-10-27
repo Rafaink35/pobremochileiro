@@ -141,6 +141,7 @@ export default function App() {
             saved={saved}
             onOpenDestination={openDestination}
             onToggleSave={toggleSave}
+            onPlanPlace={planTrip}
           />
         )}
 

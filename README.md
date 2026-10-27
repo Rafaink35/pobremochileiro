@@ -106,3 +106,21 @@ desta revisão). A verificação feita foi:
   carregar; sem conexão, o navegador usa a fonte padrão do sistema como alternativa.
 - **Sem testes automatizados**: não há Jest/Vitest/Playwright configurado no
   projeto; a verificação desta etapa foi manual (ver seção acima).
+
+## APIs conectadas (v0.3)
+| Recurso | API | Chave? | Onde |
+|---|---|---|---|
+| Câmbio | AwesomeAPI (BRL ↔ USD/EUR/GBP/ARS/CLP) | não | `src/api/fx.js`, Planejador |
+| Lugares e fotos | Wikipédia (pt) | não | `src/api/places.js`, Explorar |
+| Conta e comunidade | Supabase (login por código de e-mail) | sim, chave `anon` | `src/api/supabase.js`, Comunidade |
+
+Sem as variáveis do Supabase, a Comunidade continua em modo demonstração.
+
+### Ligar o Supabase
+1. Crie um projeto, rode `supabase/schema.sql` no SQL Editor.
+2. Em Authentication > Email Templates, inclua `{{ .Token }}` no e-mail (código de 6 dígitos).
+3. Copie `.env.example` para `.env.local` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
+
+### Pendente
+- **Voos e hospedagem:** a API self-service da Amadeus foi desativada em jul/2026. Falta escolher outro provedor (e com ele um pequeno backend para guardar a chave).
+- **Google Play:** o app já é um PWA (`public/manifest.webmanifest`, `public/sw.js`). Falta publicar o site em HTTPS e empacotar com Bubblewrap (TWA) ou Capacitor.

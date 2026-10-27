@@ -1,5 +1,6 @@
 import { Search, SlidersHorizontal, Compass } from 'lucide-react';
 import { DestinationCard } from '../components/DestinationCard.jsx';
+import { PlaceResults } from '../components/PlaceResults.jsx';
 import { EmptyState } from '../components/EmptyState.jsx';
 import { destinations, categories } from '../data/destinations.js';
 
@@ -11,6 +12,7 @@ export function Explore({
   saved,
   onOpenDestination,
   onToggleSave,
+  onPlanPlace,
 }) {
   const filtered = destinations.filter(
     (d) =>
@@ -91,6 +93,8 @@ export function Explore({
           }
         />
       )}
+
+      <PlaceResults query={query} onPlan={onPlanPlace} />
 
       <p className="data-note">
         As imagens e categorias são inspiração visual. Preços e disponibilidade não estão sendo

@@ -4,6 +4,16 @@
 const AVIASALES = 'https://www.aviasales.com';
 const IATA = /^[A-Za-z]{3}$/;
 const MONTH = /^\d{4}-\d{2}(-\d{2})?$/;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+// O link do Aviasales termina com o nº de passageiros (ex.: /search/GRU2711LIS1): ajusta
+// para a quantidade pedida e pede os preços em reais.
+function withPassengers(path, adults) {
+  const fixed = path.replace(/^(\/search\/[A-Z]{3}\d{4}[A-Z]{3}(?:\d{4})?)\d+/, `$1${adults}`);
+  const url = new URL(`${AVIASALES}${fixed}`);
+  url.searchParams.set('currency', 'brl');
+  return url.toString();
+}
 
 const json = (status, body) =>
   new Response(JSON.stringify(body), {
@@ -44,10 +54,13 @@ export default async function handler(request) {
   const origin = q.get('origin') || '';
   const destination = q.get('destination') || '';
   const when = q.get('departure_at') || '';
+  const back = q.get('return_at') || '';
+  const adults = Math.min(9, Math.max(1, parseInt(q.get('adults'), 10) || 1));
   if (!IATA.test(origin) || !IATA.test(destination)) {
     return json(400, { error: 'use códigos IATA de 3 letras (ex.: GRU, LIS)' });
   }
   if (when && !MONTH.test(when)) return json(400, { error: 'data inválida (AAAA-MM ou AAAA-MM-DD)' });
+  if (back && !DAY.test(back)) return json(400, { error: 'data de volta inválida (AAAA-MM-DD)' });
 
   const url = new URL('https://api.travelpayouts.com/aviasales/v3/prices_for_dates');
   url.search = new URLSearchParams({
@@ -58,6 +71,8 @@ export default async function handler(request) {
     limit: '5',
     unique: 'false',
     ...(when && { departure_at: when }),
+    ...(back && { return_at: back }),
+    ...(q.get('one_way') === 'true' && { one_way: 'true' }),
   });
 
   let upstream;
@@ -71,11 +86,13 @@ export default async function handler(request) {
   const rows = Array.isArray(body.data) ? body.data : [];
 
   const links = await affiliateLinks(
-    rows.map((r) => `${AVIASALES}${r.link}`),
+    rows.map((r) => withPassengers(r.link, adults)),
     { token, marker, trs: process.env.TRAVELPAYOUTS_TRS },
   );
   const flights = rows.map((r, i) => ({
     price: r.price,
+    total: r.price * adults,
+    passengers: adults,
     airline: r.airline,
     departureAt: r.departure_at,
     returnAt: r.return_at,

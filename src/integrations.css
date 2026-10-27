@@ -21,3 +21,16 @@
 .side-panel button:disabled{opacity:.6;cursor:wait}
 .form-error{margin:0;font-size:12px;color:#b3412a}
 .post-remove{margin-left:auto;font-size:11px;background:none;border:0;color:var(--muted);text-decoration:underline}
+
+.flights-card { margin-top: 24px; }
+.flights-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.flights-form label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
+.flights-form label.check { flex-direction: row; align-items: center; gap: 8px; }
+.flights-form input, .flights-form select { padding: 8px; border: 1px solid #0b3d2e55; border-radius: 8px; font: inherit; }
+.flights-list { margin: 16px 0 8px; padding-left: 20px; display: grid; gap: 6px; }
+.flights-note { font-size: 0.85rem; color: #0b3d2e; opacity: 0.75; }

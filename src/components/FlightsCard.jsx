@@ -5,16 +5,21 @@ import { fetchFlights } from '../api/flights.js';
 const brl = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('pt-BR') : '—');
 
+const EMPTY = { origin: '', destination: '', date: '', returnDate: '', month: '', oneWay: false, adults: '1' };
+
 export function FlightsCard() {
-  const [form, setForm] = useState({ origin: '', destination: '', month: '' });
+  const [form, setForm] = useState(EMPTY);
   const [state, setState] = useState({ status: 'idle', flights: [], error: '' });
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value.trim() }));
+  const set = (k) => (e) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value.trim();
+    setForm((f) => ({ ...f, [k]: value }));
+  };
 
   const submit = async (e) => {
     e.preventDefault();
     setState({ status: 'loading', flights: [], error: '' });
     try {
-      const data = await fetchFlights(form);
+      const data = await fetchFlights({ ...form, adults: Number(form.adults) });
       setState({ status: 'done', flights: data.flights, error: '' });
     } catch (err) {
       setState({ status: 'error', flights: [], error: err.message });
@@ -26,7 +31,7 @@ export function FlightsCard() {
       <h3>
         <Plane size={18} aria-hidden="true" /> Passagens mais baratas
       </h3>
-      <form onSubmit={submit} className="form-two">
+      <form onSubmit={submit} className="flights-form">
         <label>
           Origem (IATA)
           <input value={form.origin} onChange={set('origin')} placeholder="GRU" maxLength={3} required />
@@ -36,8 +41,29 @@ export function FlightsCard() {
           <input value={form.destination} onChange={set('destination')} placeholder="LIS" maxLength={3} required />
         </label>
         <label>
-          Mês (opcional)
-          <input type="month" value={form.month} onChange={set('month')} />
+          Dia da ida
+          <input type="date" value={form.date} onChange={set('date')} />
+        </label>
+        <label>
+          Dia da volta
+          <input type="date" value={form.returnDate} onChange={set('returnDate')} disabled={form.oneWay} />
+        </label>
+        <label>
+          Ou só o mês
+          <input type="month" value={form.month} onChange={set('month')} disabled={Boolean(form.date)} />
+        </label>
+        <label>
+          Passageiros
+          <select value={form.adults} onChange={set('adults')}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="check">
+          <input type="checkbox" checked={form.oneWay} onChange={set('oneWay')} /> Só ida
         </label>
         <button className="btn-outline" type="submit" disabled={state.status === 'loading'}>
           {state.status === 'loading' ? 'Buscando…' : 'Buscar'}
@@ -45,17 +71,19 @@ export function FlightsCard() {
       </form>
       {state.status === 'error' && <p role="alert">{state.error}</p>}
       {state.status === 'done' && state.flights.length === 0 && <p>Nenhum preço encontrado.</p>}
-      <ul>
+      <ul className="flights-list">
         {state.flights.map((f) => (
           <li key={f.link}>
             <a href={f.link} target="_blank" rel="noopener noreferrer sponsored">
-              {brl(f.price)} · {f.airline} · {fmtDate(f.departureAt)}
+              <b>{brl(f.total)}</b>
+              {f.passengers > 1 ? ` (${brl(f.price)} por pessoa)` : ''} · {f.airline} · {fmtDate(f.departureAt)}
+              {f.returnAt ? ` → ${fmtDate(f.returnAt)}` : ''}
               {f.transfers === 0 ? ' · direto' : ` · ${f.transfers} escala(s)`}
             </a>
           </li>
         ))}
       </ul>
-      <p className="summary-warning">Preços de cache (até 48h). Confirme no site antes de comprar.</p>
+      <p className="flights-note">Preços de cache (até 48h), em reais. Confirme no site antes de comprar.</p>
     </section>
   );
 }

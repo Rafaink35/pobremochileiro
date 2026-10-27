@@ -62,28 +62,38 @@ export default async function handler(request) {
   if (when && !MONTH.test(when)) return json(400, { error: 'data inválida (AAAA-MM ou AAAA-MM-DD)' });
   if (back && !DAY.test(back)) return json(400, { error: 'data de volta inválida (AAAA-MM-DD)' });
 
-  const url = new URL('https://api.travelpayouts.com/aviasales/v3/prices_for_dates');
-  url.search = new URLSearchParams({
-    origin: origin.toUpperCase(),
-    destination: destination.toUpperCase(),
-    currency: 'brl',
-    sorting: 'price',
-    limit: '5',
-    unique: 'false',
-    ...(when && { departure_at: when }),
-    ...(back && { return_at: back }),
-    ...(q.get('one_way') === 'true' && { one_way: 'true' }),
-  });
+  const oneWay = q.get('one_way') === 'true';
+  const search = async (departure, ret) => {
+    const url = new URL('https://api.travelpayouts.com/aviasales/v3/prices_for_dates');
+    url.search = new URLSearchParams({
+      origin: origin.toUpperCase(),
+      destination: destination.toUpperCase(),
+      currency: 'brl',
+      sorting: 'price',
+      limit: '5',
+      unique: 'false',
+      ...(departure && { departure_at: departure }),
+      ...(ret && { return_at: ret }),
+      ...(oneWay && { one_way: 'true' }),
+    });
+    const res = await fetch(url, { headers: { 'x-access-token': token } });
+    if (!res.ok) throw new Error(`serviço de voos respondeu ${res.status}`);
+    const body = await res.json();
+    return Array.isArray(body.data) ? body.data : [];
+  };
 
-  let upstream;
+  let rows;
+  let approximate = false;
   try {
-    upstream = await fetch(url, { headers: { 'x-access-token': token } });
-  } catch {
-    return json(502, { error: 'serviço de voos indisponível' });
+    rows = await search(when, back);
+    // O cache raramente tem o dia exato: sem resultado, amplia para o mês da ida (e da volta).
+    if (rows.length === 0 && (DAY.test(when) || back)) {
+      rows = await search(when.slice(0, 7), back.slice(0, 7));
+      approximate = rows.length > 0;
+    }
+  } catch (err) {
+    return json(502, { error: err.message || 'serviço de voos indisponível' });
   }
-  if (!upstream.ok) return json(502, { error: `serviço de voos respondeu ${upstream.status}` });
-  const body = await upstream.json();
-  const rows = Array.isArray(body.data) ? body.data : [];
 
   const links = await affiliateLinks(
     rows.map((r) => withPassengers(r.link, adults)),
@@ -99,5 +109,5 @@ export default async function handler(request) {
     transfers: r.transfers,
     link: links[i],
   }));
-  return json(200, { currency: 'BRL', note: 'Preços de cache (até 48h); confirme no site.', flights });
+  return json(200, { approximate, currency: 'BRL', note: 'Preços de cache (até 48h); confirme no site.', flights });
 }

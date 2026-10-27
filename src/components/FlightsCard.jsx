@@ -24,7 +24,7 @@ export function FlightsCard() {
     setState({ status: 'loading', flights: [], error: '' });
     try {
       const data = await fetchFlights({ ...form, adults: Number(form.adults) });
-      setState({ status: 'done', flights: data.flights, error: '' });
+      setState({ status: 'done', flights: data.flights, error: '', approximate: data.approximate });
     } catch (err) {
       setState({ status: 'error', flights: [], error: err.message });
     }
@@ -81,7 +81,12 @@ export function FlightsCard() {
         </button>
       </form>
       {state.status === 'error' && <p role="alert">{state.error}</p>}
-      {state.status === 'done' && state.flights.length === 0 && <p>Nenhum preço encontrado.</p>}
+      {state.status === 'done' && state.flights.length === 0 && (
+        <p>Nenhum preço guardado para essa rota. Tente outras datas, só o mês ou outro destino.</p>
+      )}
+      {state.approximate && (
+        <p>Não há preço guardado para os dias exatos. Mostrando as opções mais baratas do mesmo mês.</p>
+      )}
       <ul className="flights-list">
         {state.flights.map((f) => (
           <li key={f.link}>

@@ -99,7 +99,7 @@ export function FlightsCard() {
           </li>
         ))}
       </ul>
-      <p className="flights-note">Preços de cache (até 48h), em reais. Confirme no site antes de comprar.</p>
+      <p className="flights-note">Preços de cache (até 48h), em reais. O site do Aviasales pode mostrar o valor em dólar: use o preço acima como referência e confirme lá antes de comprar.</p>
     </section>
   );
 }

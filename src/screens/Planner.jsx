@@ -1,4 +1,5 @@
 import { FxCard } from '../components/FxCard.jsx';
+import { FlightsCard } from '../components/FlightsCard.jsx';
 import {
   ArrowUpRight,
   Bookmark,
@@ -114,6 +115,8 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
           </button>
         </aside>
       </div>
+
+      <FlightsCard />
 
       <div className="next-steps">
         <h3>O que colocar na conta?</h3>

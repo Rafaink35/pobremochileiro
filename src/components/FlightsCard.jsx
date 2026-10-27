@@ -17,6 +17,10 @@ export function FlightsCard() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!form.oneWay && form.date && form.returnDate && form.returnDate < form.date) {
+      setState({ status: 'error', flights: [], error: 'A volta precisa ser depois da ida.' });
+      return;
+    }
     setState({ status: 'loading', flights: [], error: '' });
     try {
       const data = await fetchFlights({ ...form, adults: Number(form.adults) });
@@ -32,6 +36,16 @@ export function FlightsCard() {
         <Plane size={18} aria-hidden="true" /> Passagens mais baratas
       </h3>
       <form onSubmit={submit} className="flights-form">
+        <div className="trip-type" role="radiogroup" aria-label="Tipo de viagem">
+          <label className="check">
+            <input type="radio" name="trip" checked={!form.oneWay} onChange={() => setForm((f) => ({ ...f, oneWay: false }))} />
+            Ida e volta
+          </label>
+          <label className="check">
+            <input type="radio" name="trip" checked={form.oneWay} onChange={() => setForm((f) => ({ ...f, oneWay: true, returnDate: '' }))} />
+            Só ida
+          </label>
+        </div>
         <label>
           Origem (IATA)
           <input value={form.origin} onChange={set('origin')} placeholder="GRU" maxLength={3} required />
@@ -46,7 +60,7 @@ export function FlightsCard() {
         </label>
         <label>
           Dia da volta
-          <input type="date" value={form.returnDate} onChange={set('returnDate')} disabled={form.oneWay} />
+          <input type="date" value={form.returnDate} min={form.date || undefined} onChange={set('returnDate')} disabled={form.oneWay} />
         </label>
         <label>
           Ou só o mês
@@ -61,9 +75,6 @@ export function FlightsCard() {
               </option>
             ))}
           </select>
-        </label>
-        <label className="check">
-          <input type="checkbox" checked={form.oneWay} onChange={set('oneWay')} /> Só ida
         </label>
         <button className="btn-outline" type="submit" disabled={state.status === 'loading'}>
           {state.status === 'loading' ? 'Buscando…' : 'Buscar'}

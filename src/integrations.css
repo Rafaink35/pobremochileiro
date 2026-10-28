@@ -47,3 +47,7 @@
 .month-cell em { font-size: 0.7rem; font-style: normal; color: #0b3d2e; }
 .month-cell.best { background: #f4c542; border-color: #0b3d2e; }
 .month-cell:disabled { opacity: 0.45; cursor: default; }
+
+.wl-search { margin-top: 24px; }
+.flights-fallback { margin-top: 16px; }
+.flights-fallback summary { cursor: pointer; font-weight: 700; }

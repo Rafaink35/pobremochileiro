@@ -1,5 +1,6 @@
 import { FxCard } from '../components/FxCard.jsx';
 import { FlightsCard } from '../components/FlightsCard.jsx';
+import { WhiteLabelSearch } from '../components/WhiteLabelSearch.jsx';
 import {
   ArrowUpRight,
   Bookmark,
@@ -116,7 +117,12 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
         </aside>
       </div>
 
-      <FlightsCard />
+      <WhiteLabelSearch />
+
+      <details className="flights-fallback">
+        <summary>Busca alternativa de passagens</summary>
+        <FlightsCard />
+      </details>
 
       <div className="next-steps">
         <h3>O que colocar na conta?</h3>

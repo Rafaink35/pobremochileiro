@@ -2,6 +2,7 @@ import { FxCard } from '../components/FxCard.jsx';
 import { FlightsCard } from '../components/FlightsCard.jsx';
 import { TripPlan } from '../components/TripPlan.jsx';
 import { FlexSearch } from '../components/FlexSearch.jsx';
+import { MoreSearch } from '../components/MoreSearch.jsx';
 import { ComboCompare } from '../components/ComboCompare.jsx';
 import { WhiteLabelSearch } from '../components/WhiteLabelSearch.jsx';
 import {
@@ -140,6 +141,8 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
       <FlexSearch onUseInPlan={addTransport} />
 
       <ComboCompare onUseInPlan={addTransport} />
+
+      <MoreSearch />
 
 
       <details className="flights-fallback">

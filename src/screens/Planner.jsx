@@ -123,7 +123,21 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
 
       <WhiteLabelSearch />
 
-      <ComboCompare />
+      <ComboCompare
+        onUseInPlan={(rows) =>
+          setDraft((old) => ({
+            ...old,
+            items: [
+              ...(old.items || []),
+              ...rows.map((r) => ({
+                id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                category: 'Transporte',
+                ...r,
+              })),
+            ],
+          }))
+        }
+      />
 
       <details className="flights-fallback">
         <summary>Busca alternativa de passagens</summary>

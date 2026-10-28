@@ -12,9 +12,10 @@ async function cheapest(origin, destination, month, adults) {
   return data.flights[0] || null;
 }
 
-export function ComboCompare() {
+export function ComboCompare({ onUseInPlan }) {
   const [form, setForm] = useState(EMPTY);
   const [state, setState] = useState({ status: 'idle', error: '', result: null });
+  const [added, setAdded] = useState(null);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value.trim() }));
 
   const submit = async (e) => {
@@ -29,6 +30,7 @@ export function ComboCompare() {
       return;
     }
     const adults = Number(form.adults);
+    setAdded(null);
     setState({ status: 'loading', error: '', result: null });
     try {
       const [direct, hub] = await Promise.all([
@@ -50,6 +52,25 @@ export function ComboCompare() {
   };
 
   const { result } = state;
+  const money = (n) => n.toFixed(2).replace('.', ',');
+  const useDirect = () => {
+    const { directFrom, destination } = form;
+    onUseInPlan([
+      { label: `Voo ${directFrom.toUpperCase()} → ${destination.toUpperCase()}`, amount: money(result.direct.total) },
+    ]);
+    setAdded('direct');
+  };
+  const useCombo = () => {
+    const { hubFrom, destination } = form;
+    onUseInPlan([
+      { label: `Ônibus até ${hubFrom.toUpperCase()}`, amount: money(result.combo.ground) },
+      {
+        label: `Voo ${hubFrom.toUpperCase()} → ${destination.toUpperCase()}`,
+        amount: money(result.combo.total - result.combo.ground),
+      },
+    ]);
+    setAdded('combo');
+  };
   const winner =
     result?.direct && result?.combo ? (result.combo.total < result.direct.total ? 'combo' : 'direct') : null;
 
@@ -104,12 +125,16 @@ export function ComboCompare() {
             title={`Direto de ${form.directFrom.toUpperCase()}`}
             row={result.direct}
             best={winner === 'direct'}
+            onUse={onUseInPlan && result.direct ? useDirect : null}
+            used={added === 'direct'}
             lines={result.direct && [`Voo: ${brl(result.direct.total)}`]}
           />
           <ComboRow
             title={`Ônibus + voo de ${form.hubFrom.toUpperCase()}`}
             row={result.combo}
             best={winner === 'combo'}
+            onUse={onUseInPlan && result.combo ? useCombo : null}
+            used={added === 'combo'}
             lines={
               result.combo && [`Voo: ${brl(result.combo.total - result.combo.ground)}`, `Ônibus: ${brl(result.combo.ground)}`]
             }
@@ -126,7 +151,7 @@ export function ComboCompare() {
   );
 }
 
-function ComboRow({ title, row, best, lines }) {
+function ComboRow({ title, row, best, lines, onUse, used }) {
   return (
     <div className={`combo-row${best ? ' best' : ''}`}>
       <h4>
@@ -141,6 +166,11 @@ function ComboRow({ title, row, best, lines }) {
           <a href={row.link} target="_blank" rel="noopener noreferrer sponsored">
             Ver esse voo
           </a>
+          {onUse && (
+            <button type="button" className="btn-primary" onClick={onUse} disabled={used}>
+              {used ? 'Adicionado ao plano ✓' : 'Usar no plano'}
+            </button>
+          )}
         </>
       ) : (
         <span>Sem preço guardado para essa rota.</span>

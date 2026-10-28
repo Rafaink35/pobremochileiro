@@ -1,5 +1,6 @@
 import { FxCard } from '../components/FxCard.jsx';
 import { FlightsCard } from '../components/FlightsCard.jsx';
+import { ComboCompare } from '../components/ComboCompare.jsx';
 import { WhiteLabelSearch } from '../components/WhiteLabelSearch.jsx';
 import {
   ArrowUpRight,
@@ -118,6 +119,8 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
       </div>
 
       <WhiteLabelSearch />
+
+      <ComboCompare />
 
       <details className="flights-fallback">
         <summary>Busca alternativa de passagens</summary>

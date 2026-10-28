@@ -1,15 +1,22 @@
 import { useState } from 'react';
 import { Plane } from 'lucide-react';
-import { fetchFlights } from '../api/flights.js';
+import { fetchCalendar, fetchFlights } from '../api/flights.js';
 
 const brl = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('pt-BR') : '—');
+
+const monthLabel = (ym) => {
+  const [y, m] = ym.split('-').map(Number);
+  const name = new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+  return `${name}/${String(y).slice(2)}`;
+};
 
 const EMPTY = { origin: '', destination: '', date: '', returnDate: '', month: '', oneWay: false, adults: '1' };
 
 export function FlightsCard() {
   const [form, setForm] = useState(EMPTY);
   const [state, setState] = useState({ status: 'idle', flights: [], error: '' });
+  const [cal, setCal] = useState({ status: 'idle', months: [], error: '' });
   const set = (k) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value.trim();
     setForm((f) => ({ ...f, [k]: value }));
@@ -29,6 +36,22 @@ export function FlightsCard() {
       setState({ status: 'error', flights: [], error: err.message });
     }
   };
+
+  const loadCalendar = async () => {
+    if (!/^[A-Za-z]{3}$/.test(form.origin) || !/^[A-Za-z]{3}$/.test(form.destination)) {
+      setCal({ status: 'error', months: [], error: 'Preencha origem e destino (códigos de 3 letras).' });
+      return;
+    }
+    setCal({ status: 'loading', months: [], error: '' });
+    try {
+      const data = await fetchCalendar(form);
+      setCal({ status: 'done', months: data.months, error: '' });
+    } catch (err) {
+      setCal({ status: 'error', months: [], error: err.message });
+    }
+  };
+
+  const pickMonth = (month) => setForm((f) => ({ ...f, month, date: '', returnDate: '' }));
 
   return (
     <section className="flights-card">
@@ -80,6 +103,34 @@ export function FlightsCard() {
           {state.status === 'loading' ? 'Buscando…' : 'Buscar'}
         </button>
       </form>
+      <div className="month-calendar">
+        <button type="button" className="btn-outline" onClick={loadCalendar} disabled={cal.status === 'loading'}>
+          {cal.status === 'loading' ? 'Procurando…' : 'Ver o melhor mês para viajar'}
+        </button>
+        {cal.status === 'error' && <p role="alert">{cal.error}</p>}
+        {cal.status === 'done' && (
+          <>
+            <div className="month-grid">
+              {cal.months.map((m) => (
+                <button
+                  type="button"
+                  key={m.month}
+                  className={`month-cell${m.isBest ? ' best' : ''}`}
+                  disabled={m.price == null}
+                  onClick={() => pickMonth(m.month)}
+                >
+                  <span>{monthLabel(m.month)}</span>
+                  <b>{m.price == null ? '—' : brl(m.price)}</b>
+                  {m.isBest && <em>mais barato</em>}
+                </button>
+              ))}
+            </div>
+            <p className="flights-note">
+              Menor preço guardado por mês (cache). Toque em um mês para escolhê-lo e depois clique em Buscar.
+            </p>
+          </>
+        )}
+      </div>
       {state.status === 'error' && <p role="alert">{state.error}</p>}
       {state.status === 'done' && state.flights.length === 0 && (
         <p>Nenhum preço guardado para essa rota. Tente outras datas, só o mês ou outro destino.</p>

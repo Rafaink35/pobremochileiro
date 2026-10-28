@@ -35,3 +35,15 @@
 .flights-form input, .flights-form select { padding: 8px; border: 1px solid #0b3d2e55; border-radius: 8px; font: inherit; }
 .flights-list { margin: 16px 0 8px; padding-left: 20px; display: grid; gap: 6px; }
 .flights-note { font-size: 0.85rem; color: #0b3d2e; opacity: 0.75; }
+
+.month-calendar { margin: 16px 0; display: grid; gap: 10px; }
+.month-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.month-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px;
+  border: 1px solid #0b3d2e33; border-radius: 10px; background: #fff; font: inherit; cursor: pointer;
+}
+.month-cell span { text-transform: capitalize; font-weight: 700; }
+.month-cell b { font-size: 0.85rem; }
+.month-cell em { font-size: 0.7rem; font-style: normal; color: #0b3d2e; }
+.month-cell.best { background: #f4c542; border-color: #0b3d2e; }
+.month-cell:disabled { opacity: 0.45; cursor: default; }

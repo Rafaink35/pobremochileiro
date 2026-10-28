@@ -67,3 +67,20 @@
 .combo-row h4 { margin: 0; }
 .combo-row em { font-style: normal; font-size: 0.75rem; }
 .combo-results > p { grid-column: 1 / -1; }
+
+.trip-plan { margin-top: 24px; }
+.plan-add { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.plan-list { list-style: none; padding: 0; display: grid; gap: 8px; }
+.plan-item { display: grid; grid-template-columns: 96px 1fr 110px auto auto; gap: 8px; align-items: center; }
+.plan-cat { font-weight: 700; font-size: 0.85rem; }
+.plan-item input { padding: 8px; border: 1px solid #0b3d2e55; border-radius: 8px; font: inherit; min-width: 0; }
+.plan-reserve { font-weight: 700; color: #0b3d2e; display: inline-flex; align-items: center; gap: 2px; }
+.plan-remove { background: none; border: 0; cursor: pointer; color: #0b3d2e; }
+.plan-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 14px; margin-top: 12px; border-radius: 14px; background: #fff; border: 1px solid #0b3d2e22; }
+.plan-total small { flex-basis: 100%; }
+.plan-total.ok { background: #e3f1e0; }
+.plan-total.over { background: #fbe0d8; }
+@media (max-width: 600px) {
+  .plan-item { grid-template-columns: 1fr 1fr; }
+  .plan-cat { grid-column: 1 / -1; }
+}

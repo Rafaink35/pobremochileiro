@@ -1,5 +1,6 @@
 import { FxCard } from '../components/FxCard.jsx';
 import { FlightsCard } from '../components/FlightsCard.jsx';
+import { TripPlan } from '../components/TripPlan.jsx';
 import { ComboCompare } from '../components/ComboCompare.jsx';
 import { WhiteLabelSearch } from '../components/WhiteLabelSearch.jsx';
 import {
@@ -117,6 +118,8 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
           </button>
         </aside>
       </div>
+
+      <TripPlan draft={draft} setDraft={setDraft} />
 
       <WhiteLabelSearch />
 

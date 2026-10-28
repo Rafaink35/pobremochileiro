@@ -8,7 +8,7 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 // O link do Aviasales termina com o nº de passageiros (ex.: /search/GRU2711LIS1): ajusta
 // para a quantidade pedida e pede os preços em reais.
-function withPassengers(path, adults) {
+export function withPassengers(path, adults) {
   const fixed = path.replace(/^(\/search\/[A-Z]{3}\d{4}[A-Z]{3}(?:\d{4})?)\d+/, `$1${adults}`);
   const url = new URL(`${AVIASALES}${fixed}`);
   url.searchParams.set('currency', 'brl');
@@ -22,7 +22,7 @@ const json = (status, body) =>
   });
 
 // Tenta a Partner Links API; se falhar, cai para o parâmetro ?marker= no link do Aviasales.
-async function affiliateLinks(urls, { token, marker, trs }) {
+export async function affiliateLinks(urls, { token, marker, trs }) {
   const fallback = urls.map((u) => `${u}${u.includes('?') ? '&' : '?'}marker=${encodeURIComponent(marker)}`);
   if (!trs) return fallback;
   try {

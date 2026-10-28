@@ -1,6 +1,7 @@
 import { FxCard } from '../components/FxCard.jsx';
 import { FlightsCard } from '../components/FlightsCard.jsx';
 import { TripPlan } from '../components/TripPlan.jsx';
+import { FlexSearch } from '../components/FlexSearch.jsx';
 import { ComboCompare } from '../components/ComboCompare.jsx';
 import { WhiteLabelSearch } from '../components/WhiteLabelSearch.jsx';
 import {
@@ -19,6 +20,19 @@ const DAY_OPTIONS = ['1', '2', '3', '4', '5', '7', '10', '14'];
 
 export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
   const { tripName, origin, days, budget } = draft;
+
+  const addTransport = (rows) =>
+    setDraft((old) => ({
+      ...old,
+      items: [
+        ...(old.items || []),
+        ...rows.map((r) => ({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          category: 'Transporte',
+          ...r,
+        })),
+      ],
+    }));
 
   const update = (field) => (e) => setDraft((old) => ({ ...old, [field]: e.target.value }));
 
@@ -123,21 +137,10 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
 
       <WhiteLabelSearch />
 
-      <ComboCompare
-        onUseInPlan={(rows) =>
-          setDraft((old) => ({
-            ...old,
-            items: [
-              ...(old.items || []),
-              ...rows.map((r) => ({
-                id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-                category: 'Transporte',
-                ...r,
-              })),
-            ],
-          }))
-        }
-      />
+      <FlexSearch onUseInPlan={addTransport} />
+
+      <ComboCompare onUseInPlan={addTransport} />
+
 
       <details className="flights-fallback">
         <summary>Busca alternativa de passagens</summary>

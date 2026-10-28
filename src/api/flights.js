@@ -19,3 +19,17 @@ export async function fetchCalendar({ origin, destination, oneWay }) {
   if (!res.ok) throw new Error(data.error || `calendário ${res.status}`);
   return data;
 }
+
+// Datas flexíveis: menor preço por dia de ida dentro de um período.
+export async function fetchFlex({ origin, destination, from, to, minStay, maxStay, oneWay, adults }) {
+  const params = new URLSearchParams({ origin, destination, from, to, adults: String(adults || 1) });
+  if (oneWay) params.set('one_way', 'true');
+  else {
+    if (minStay) params.set('min_stay', String(minStay));
+    if (maxStay) params.set('max_stay', String(maxStay));
+  }
+  const res = await fetch(`/api/flex?${params}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `datas flexíveis ${res.status}`);
+  return data;
+}

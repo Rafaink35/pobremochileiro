@@ -84,3 +84,11 @@
   .plan-item { grid-template-columns: 1fr 1fr; }
   .plan-cat { grid-column: 1 / -1; }
 }
+
+.flex-card { margin-top: 24px; }
+.flex-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 8px; }
+.flex-list li {
+  display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-radius: 12px; background: #fff; border: 1px solid #0b3d2e22;
+}
+.flex-list li.best { background: #f4c542; border-color: #0b3d2e; }

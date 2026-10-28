@@ -1,4 +1,5 @@
 import { ArrowUpRight, Compass, Heart, MapPin } from 'lucide-react';
+import { BeforeTrip } from '../components/BeforeTrip.jsx';
 
 export function Detail({ destination, isSaved, onBack, onToggleSave, onPlanTrip }) {
   return (
@@ -55,6 +56,8 @@ export function Detail({ destination, isSaved, onBack, onToggleSave, onPlanTrip 
           </button>
         </article>
       </div>
+
+      <BeforeTrip />
     </section>
   );
 }

@@ -91,6 +91,20 @@ export function Home({ onNavigate, onSelectCategory, onOpenDestination, saved, o
 
       <section className="planner-banner">
         <div className="banner-icon" aria-hidden="true">
+          <Sparkles size={24} />
+        </div>
+        <div>
+          <p className="eyebrow">DINHEIRO CONTADO, SEM CHUTE</p>
+          <h2>Descubra até onde seu dinheiro leva você.</h2>
+          <p>Diga quanto tem e de onde sai. Mostramos só o que tem fonte e data.</p>
+        </div>
+        <button className="btn-dark" onClick={() => onNavigate('Descubra')}>
+          Descobrir <ArrowUpRight size={17} aria-hidden="true" />
+        </button>
+      </section>
+
+      <section className="planner-banner">
+        <div className="banner-icon" aria-hidden="true">
           <Wallet size={24} />
         </div>
         <div>

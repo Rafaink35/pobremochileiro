@@ -80,7 +80,7 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
             <label>
               Quantos dias?
               <select value={days} onChange={update('days')}>
-                {DAY_OPTIONS.map((n) => (
+                {[...new Set([...DAY_OPTIONS, days])].sort((a, b) => a - b).map((n) => (
                   <option key={n} value={n}>
                     {n} {n === '1' ? 'dia' : 'dias'}
                   </option>

@@ -217,3 +217,9 @@ fontes simuladas, e a tela no navegador com um servidor simulado; streaming real
 ## Comunidades
 Grupos por tema ou destino na aba Comunidade: filtro do feed, entrar e sair, publicar só como membro (regra também no banco).
 Criação de comunidades pela moderação. Detalhes e passos em `docs/comunidades.md`.
+
+
+## Motor de viagens (Fase 1)
+Base de conhecimento com preços rastreáveis (status, unidade, fonte, data), motor de orçamento, recomendador determinístico e
+interpretador de pedidos em português por regras (sem LLM). Tela `#descubra`. **A base está vazia**: só entra dado real com fonte e
+licença. Estrutura, regras e como cadastrar fontes em `docs/trip-engine.md`.

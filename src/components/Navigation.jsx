@@ -1,10 +1,11 @@
-import { Compass, Search, Wallet, Users, Bookmark, Menu, X } from 'lucide-react';
+import { Compass, Search, Wallet, Users, Bookmark, Menu, X, Route } from 'lucide-react';
 import { Brand } from './Brand.jsx';
 
 export const NAV_ITEMS = [
   ['Início', Compass],
   ['Explorar', Search],
   ['Planejador', Wallet],
+  ['Transporte', Route],
   ['Comunidade', Users],
 ];
 

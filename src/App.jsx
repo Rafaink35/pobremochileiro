@@ -8,6 +8,8 @@ import { Detail } from './screens/Detail.jsx';
 import { Planner } from './screens/Planner.jsx';
 import { Community } from './screens/Community.jsx';
 import { Saved } from './screens/Saved.jsx';
+import { Transport } from './screens/Transport.jsx';
+import { DataSources } from './screens/DataSources.jsx';
 import { destinations } from './data/destinations.js';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
 
@@ -22,6 +24,8 @@ const SCREEN_TO_HASH = {
   Planejador: 'planejador',
   Comunidade: 'comunidade',
   Salvos: 'salvos',
+  Transporte: 'transporte',
+  Fontes: 'fontes',
 };
 const HASH_TO_SCREEN = Object.fromEntries(Object.entries(SCREEN_TO_HASH).map(([k, v]) => [v, k]));
 
@@ -171,6 +175,10 @@ export default function App() {
           />
         )}
 
+        {screen === 'Transporte' && <Transport onNavigate={go} />}
+
+        {screen === 'Fontes' && <DataSources />}
+
         {screen === 'Salvos' && (
           <Saved saved={saved} onOpenDestination={openDestination} onToggleSave={toggleSave} onNavigate={go} />
         )}
@@ -179,6 +187,9 @@ export default function App() {
           <Brand compact />
           <span>Feito pra quem quer ver mais mundo. ✳</span>
           <span>Conceito visual · preços não verificados</span>
+          <button className="back-link" onClick={() => go('Fontes')}>
+            Fontes de dados
+          </button>
         </footer>
       </main>
 

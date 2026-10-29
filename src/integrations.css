@@ -93,3 +93,13 @@
 }
 .flex-list li.best { background: #f4c542; border-color: #0b3d2e; }
 .more-search { margin-top: 24px; }
+
+.transport-search { margin-top: 16px; }
+.transport-provider { margin-top: 16px; }
+.transport-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.transport-option { display: grid; gap: 4px; padding: 14px; border-radius: 14px; background: #fff; border: 1px solid #0b3d2e22; }
+.transport-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.transport-head em { font-style: normal; font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: #e8785d33; }
+.transport-option p { margin: 0; }
+.gtfs-import { margin-top: 20px; }
+.gtfs-import summary { cursor: pointer; font-weight: 700; }

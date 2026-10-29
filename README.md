@@ -209,3 +209,6 @@ enquanto houver custo ou transporte desconhecido. Detalhes, licenças e pendênc
 ## Roteiro mais barato com IA
 Assistente no Planejador (`/api/roteiro`, Claude API com ferramentas de câmbio, voos, campings e work exchange). Valores sem
 fonte são descartados no servidor. Exige `ANTHROPIC_API_KEY` e login; **testado só com simulações**. Ver `docs/roteiro-ai.md`.
+
+**Chat com streaming:** o Planejador agora tem um chat com o assistente (`/api/chat`, respostas em NDJSON). Testado com IA e
+fontes simuladas, e a tela no navegador com um servidor simulado; streaming real na Netlify não validado. Ver `docs/roteiro-ai.md`.

@@ -113,3 +113,13 @@
 .plan-stays { margin-top: 16px; }
 .plan-stay { display: grid; gap: 4px; padding: 12px; border-radius: 12px; background: #fff; border: 1px solid #0b3d2e22; list-style: none; }
 .roteiro-ai { margin-top: 24px; }
+
+.chat-agent { margin-top: 24px; }
+.chat-log { display: grid; gap: 10px; margin: 12px 0; }
+.chat-user { justify-self: end; max-width: 85%; margin: 0; padding: 10px 14px; border-radius: 14px 14px 2px 14px; background: #f4c542; }
+.chat-assistant { justify-self: start; max-width: 95%; display: grid; gap: 6px; padding: 10px 14px; border-radius: 14px 14px 14px 2px; background: #fff; border: 1px solid #0b3d2e22; }
+.chat-text { margin: 0; white-space: pre-wrap; }
+.chat-warning { margin: 0; padding: 6px 10px; border-radius: 8px; background: #e8785d33; }
+.chat-form { display: flex; flex-wrap: wrap; gap: 8px; }
+.chat-form input { flex: 1 1 220px; padding: 10px; border: 1px solid #0b3d2e55; border-radius: 10px; font: inherit; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

@@ -3,6 +3,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { TOOL_DEFINITIONS, createToolbox } from '../../src/services/roteiro/tools.js';
 import { extractJson, verifyRoteiro } from '../../src/services/roteiro/verify.js';
+import { createDailyLimiter, verifyUser } from '../../src/services/roteiro/auth.js';
 
 const MAX_TURNS = 6;
 const MAX_TOKENS = 4000;
@@ -23,18 +24,7 @@ Termine com UM objeto JSON, sem texto fora dele, neste formato:
 const json = (status, body) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
 
-const usageByUser = new Map(); // limite por usuário/dia, por instância: freio simples, não substitui o limite de gasto no Console
-
-async function verifyUser(request, env, fetchImpl) {
-  const token = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!token || !env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return null;
-  const res = await fetchImpl(`${env.SUPABASE_URL}/auth/v1/user`, {
-    headers: { apikey: env.SUPABASE_ANON_KEY, authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) return null;
-  const user = await res.json();
-  return user?.id ?? null;
-}
+const limiter = createDailyLimiter();
 
 function buildPrompt(b) {
   const lines = [
@@ -62,11 +52,6 @@ export function createRoteiroHandler({
     const userId = await verifyUser(request, env, fetchImpl).catch(() => null);
     if (!userId) return json(401, { error: 'entre na sua conta para usar o assistente' });
 
-    const day = now().toISOString().slice(0, 10);
-    const limit = Number(env.ROTEIRO_DAILY_LIMIT) || 5;
-    const used = usageByUser.get(userId);
-    const count = used?.day === day ? used.count : 0;
-    if (count >= limit) return json(429, { error: `limite de ${limit} roteiros por dia atingido` });
 
     let body;
     try {
@@ -86,7 +71,8 @@ export function createRoteiroHandler({
       notes: String(body.notes ?? '').slice(0, 400),
     };
 
-    usageByUser.set(userId, { day, count: count + 1 });
+    const limit = Number(env.ROTEIRO_DAILY_LIMIT) || 5;
+    if (!limiter.take(userId, now().toISOString().slice(0, 10), limit)) return json(429, { error: `limite de ${limit} roteiros por dia atingido` });
     const toolbox = createToolbox({ env, fetchImpl, now });
     const client = makeClient();
     const messages = [{ role: 'user', content: buildPrompt(clean) }];

@@ -21,3 +21,19 @@
   também um **limite de gasto** no Console da Anthropic.
 - Não testado contra a API real nem contra Travelpayouts/Overpass/Supabase neste ambiente (só com simulações).
 - A IA pode errar nos textos (resumo, observações); só os valores em reais são verificados.
+
+## Chat com streaming (`POST /api/chat`)
+Substitui o formulário no Planejador (`ChatAgent`). A função `netlify/functions/chat.mjs` responde em **NDJSON** (um evento
+JSON por linha): `tool` (o que a IA está consultando), `text` (trechos da resposta), `proposal` (itens sugeridos, já verificados),
+`warning`, `error` e `done` (com o uso de tokens).
+
+- **Ferramentas:** câmbio, voos, datas flexíveis, combo ônibus + voo, campings, trabalho em troca, leitura do plano,
+  `record_user_value` (valor dito pelo usuário) e `propose_plan_items`.
+- **Verificação:** itens propostos só têm valor se baterem com uma fonte (`verify.js`). Valores em reais citados no
+  **texto** sem origem (ferramenta, plano ou fala do usuário) geram um aviso (`amounts.js`). A IA nunca altera o plano:
+  o usuário toca em "Adicionar ao plano".
+- **Conversa:** o navegador envia as últimas 12 mensagens de texto e um resumo do plano; o servidor não guarda nada.
+- **Variáveis:** `CHAT_MODEL` (padrão `claude-opus-5-5`), `CHAT_DAILY_LIMIT` (padrão 30 mensagens por usuário por dia).
+- **Riscos ainda não validados:** streaming em funções da Netlify e o tempo máximo de execução (o padrão costuma ser curto
+  e uma resposta com várias ferramentas pode demorar mais). Teste em produção; se cortar, é preciso outro tipo de
+  hospedagem para essa rota. A verificação de texto livre é uma rede de segurança, não uma garantia.

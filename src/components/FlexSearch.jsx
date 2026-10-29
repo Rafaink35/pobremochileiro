@@ -44,6 +44,8 @@ export function FlexSearch({ onUseInPlan }) {
       {
         label: `Voo ${form.origin.toUpperCase()} → ${form.destination.toUpperCase()} (${fmt(d.day)}${d.returnDay ? ` a ${fmt(d.returnDay)}` : ''})`,
         amount: d.total.toFixed(2).replace('.', ','),
+        url: d.link,
+        source: 'Aviasales',
       },
     ]);
     setAdded(d.day);

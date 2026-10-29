@@ -56,7 +56,12 @@ export function ComboCompare({ onUseInPlan }) {
   const useDirect = () => {
     const { directFrom, destination } = form;
     onUseInPlan([
-      { label: `Voo ${directFrom.toUpperCase()} → ${destination.toUpperCase()}`, amount: money(result.direct.total) },
+      {
+        label: `Voo ${directFrom.toUpperCase()} → ${destination.toUpperCase()}`,
+        amount: money(result.direct.total),
+        url: result.direct.link,
+        source: 'Aviasales',
+      },
     ]);
     setAdded('direct');
   };
@@ -67,6 +72,8 @@ export function ComboCompare({ onUseInPlan }) {
       {
         label: `Voo ${hubFrom.toUpperCase()} → ${destination.toUpperCase()}`,
         amount: money(result.combo.total - result.combo.ground),
+        url: result.combo.link,
+        source: 'Aviasales',
       },
     ]);
     setAdded('combo');

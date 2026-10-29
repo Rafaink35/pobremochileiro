@@ -44,7 +44,8 @@ export function TripPlan({ draft, setDraft }) {
 
       <ul className="plan-list">
         {items.map((it) => {
-          const link = reserveLink(it.category);
+          const source = it.url && it.url.startsWith('https://') ? { url: it.url, name: it.source || 'site' } : null;
+          const link = source || reserveLink(it.category);
           return (
             <li key={it.id} className="plan-item">
               <span className="plan-cat">{it.category}</span>
@@ -63,7 +64,7 @@ export function TripPlan({ draft, setDraft }) {
               />
               {link && (
                 <a href={link.url} target="_blank" rel="noopener noreferrer sponsored" className="plan-reserve">
-                  Reservar <ArrowUpRight size={13} aria-hidden="true" />
+                  {source ? `Comprar no ${source.name}` : 'Reservar'} <ArrowUpRight size={13} aria-hidden="true" />
                 </a>
               )}
               <button type="button" onClick={() => remove(it.id)} aria-label="Remover item" className="plan-remove">

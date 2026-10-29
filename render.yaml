@@ -1,0 +1,34 @@
+# Blueprint do Render (https://render.com). Um único serviço Node: serve o app e as rotas /api/*.
+# Os valores secretos NÃO ficam aqui: cadastre no painel do Render (Environment), nunca no GitHub.
+services:
+  - type: web
+    name: pobre-mochileiro
+    runtime: node
+    plan: free
+    branch: main            # pode trocar pela branch que preferir
+    buildCommand: npm ci && npm run build
+    startCommand: node server.mjs
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      # Lidas na CONSTRUÇÃO do site (públicas por natureza):
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      # Só no servidor:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: TRAVELPAYOUTS_TOKEN
+        sync: false
+      - key: TRAVELPAYOUTS_MARKER
+        sync: false
+      - key: TRAVELPAYOUTS_TRS
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CHAT_MODEL
+        value: claude-haiku-5-5

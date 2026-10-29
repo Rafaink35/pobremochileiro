@@ -103,3 +103,12 @@
 .transport-option p { margin: 0; }
 .gtfs-import { margin-top: 20px; }
 .gtfs-import summary { cursor: pointer; font-weight: 700; }
+
+.place-detail { display: grid; gap: 6px; }
+.place-row { margin: 0; }
+.amenity-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 2px 12px; padding-left: 18px; margin: 4px 0; }
+.stay-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; padding: 12px; border: 1px solid #0b3d2e22; border-radius: 12px; }
+.stay-filters label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
+.stay-filters label.check { flex-direction: row; align-items: center; gap: 8px; }
+.plan-stays { margin-top: 16px; }
+.plan-stay { display: grid; gap: 4px; padding: 12px; border-radius: 12px; background: #fff; border: 1px solid #0b3d2e22; list-style: none; }

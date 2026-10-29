@@ -15,6 +15,8 @@ Legenda de estado: **Preparada** = interface pronta, sem fonte validada · **Inv
 | Eurolines / Isilines | https://data.gouv.fr/en/datasets/horaires-theoriques-du-reseau-europeen-eurolines-isilines-gtfs | GTFS | ODbL | Rede europeia de ônibus | Última: maio de 2019 | Download na ficha | Sem fonte atual |
 | GTFS ônibus do Rio (data.rio / SMTR) | https://community.openstreetmap.org/t/gtfs-dos-onibus-do-rio-de-janeiro/142895 | GTFS | CC BY citada em discussão pública; confirmar | Município do Rio | A confirmar | Portal data.rio | Investigada |
 | SPTrans (São Paulo) | https://www.sptrans.com.br/desenvolvedores/ | GTFS | Não confirmada | Município de São Paulo | A confirmar | Cadastro (a confirmar) | Investigada |
+| OpenStreetMap (Overpass) | https://www.openstreetmap.org/copyright | Overpass JSON | ODbL 1.0 | Mundial (mapeamento voluntário) | Contínua, irregular | API pública, uso justo | Preparada (testada só com respostas simuladas) |
+| Cadastro próprio de work exchange | supabase/schema.sql | Tabela Supabase | Termos a definir | Só o aprovado | Pela moderação | Requer Supabase | Preparada |
 | OpenTripPlanner | https://www.opentripplanner.org/ | Motor de roteamento (GTFS + OSM; API GraphQL) | Software livre | Depende dos dados carregados | n/a | Serviço próprio a instalar | Preparada |
 
 ## Observações

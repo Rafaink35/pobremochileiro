@@ -9,6 +9,7 @@ import { Planner } from './screens/Planner.jsx';
 import { Community } from './screens/Community.jsx';
 import { Saved } from './screens/Saved.jsx';
 import { Transport } from './screens/Transport.jsx';
+import { Stays } from './screens/Stays.jsx';
 import { DataSources } from './screens/DataSources.jsx';
 import { destinations } from './data/destinations.js';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
@@ -25,6 +26,7 @@ const SCREEN_TO_HASH = {
   Comunidade: 'comunidade',
   Salvos: 'salvos',
   Transporte: 'transporte',
+  Hospedagem: 'hospedagem',
   Fontes: 'fontes',
 };
 const HASH_TO_SCREEN = Object.fromEntries(Object.entries(SCREEN_TO_HASH).map(([k, v]) => [v, k]));
@@ -176,6 +178,8 @@ export default function App() {
         )}
 
         {screen === 'Transporte' && <Transport onNavigate={go} />}
+
+        {screen === 'Hospedagem' && <Stays draft={draft} setDraft={setDraft} notify={notify} onNavigate={go} />}
 
         {screen === 'Fontes' && <DataSources />}
 

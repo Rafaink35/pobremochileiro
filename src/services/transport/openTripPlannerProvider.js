@@ -3,6 +3,7 @@
 import { createSourceMetadata } from './sourceMetadata.js';
 import { createTravelOption, MODES, otpModeToMode } from './normalizers.js';
 import { SEARCH_STATUS, searchResult } from './transportProvider.js';
+import { parseLatLon } from '../geo.js';
 
 const clock = (ms) => new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
@@ -26,13 +27,7 @@ query Plan($from: InputCoordinates!, $to: InputCoordinates!, $date: String, $tim
 }`;
 
 /** Aceita "lat,lon"; nomes exigiriam geocodificação, que este provedor não faz. */
-export function parseCoordinates(text) {
-  const m = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/.exec(String(text ?? ''));
-  if (!m) return null;
-  const lat = Number(m[1]);
-  const lon = Number(m[2]);
-  return lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 ? { lat, lon } : null;
-}
+export const parseCoordinates = parseLatLon;
 
 export function createOtpProvider({ baseUrl = '', fetchImpl = (...a) => fetch(...a), source = {} } = {}) {
   const base = String(baseUrl || '').replace(/\/+$/, '');
@@ -47,6 +42,7 @@ export function createOtpProvider({ baseUrl = '', fetchImpl = (...a) => fetch(..
     id: 'otp',
     name: 'Roteamento (OpenTripPlanner)',
     isConfigured: () => Boolean(base),
+    describeCoverage: () => ({ modes: [], text: 'As modalidades dependem dos dados carregados no servidor de roteamento.' }),
     getSource: () => meta,
     async search({ origin, destination, date }) {
       const from = parseCoordinates(origin);

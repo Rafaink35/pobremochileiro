@@ -12,6 +12,7 @@ import {
   parseGtfsTime,
 } from './normalizers.js';
 import { SEARCH_STATUS, searchResult } from './transportProvider.js';
+import { haversineMeters, parseLatLon } from '../geo.js';
 
 const REQUIRED = ['agency.txt', 'stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt'];
 const OPTIONAL = ['calendar.txt', 'calendar_dates.txt', 'fare_attributes.txt', 'fare_rules.txt'];
@@ -190,8 +191,19 @@ export function fareForRoute(dataset, routeId) {
 
 const norm = (s) => String(s ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
 
-/** Paradas cujo nome ou stop_id corresponde ao texto (busca simples; sem geocodificação). */
+export const NEARBY_STOP_RADIUS_M = 800;
+
+/**
+ * Paradas que correspondem ao texto: "lat,lon" (paradas num raio de 800 m) ou nome/stop_id (sem geocodificação).
+ */
 export function findStops(dataset, text) {
+  const point = parseLatLon(text);
+  if (point) {
+    return [...dataset.stops.values()].filter((s) => {
+      const c = { lat: Number(s.stop_lat), lon: Number(s.stop_lon) };
+      return Number.isFinite(c.lat) && Number.isFinite(c.lon) && haversineMeters(point, c) <= NEARBY_STOP_RADIUS_M;
+    });
+  }
   const q = norm(text);
   if (!q) return [];
   return [...dataset.stops.values()].filter((s) => s.stop_id === text || norm(s.stop_name).includes(q));
@@ -206,6 +218,14 @@ export function createGtfsProvider() {
     registry,
     importZip: (bytes, meta) => importGtfsZip(bytes, meta, registry),
     isConfigured: () => registry.size > 0,
+    /** Modalidades realmente presentes nos conjuntos importados (derivadas de routes.txt). */
+    describeCoverage() {
+      const modes = new Set();
+      for (const d of registry.values()) for (const r of d.routes.values()) modes.add(gtfsRouteTypeToMode(r.route_type));
+      return modes.size
+        ? { modes: [...modes], text: `Modalidades nesta fonte: ${[...modes].join(', ')}. Não presuma que cobre outros modos ou operadores.` }
+        : { modes: [], text: 'Nenhum conjunto GTFS importado.' };
+    },
     getSource() {
       const metas = [...registry.values()].map((d) => d.meta);
       return metas.length === 1 ? metas[0] : null;

@@ -196,3 +196,11 @@ npm run build
 - Sem geocodificação: origem/destino são nomes de parada (GTFS) ou `lat,lon` (OpenTripPlanner).
 - Custos potenciais: hospedagem do OpenTripPlanner e do armazenamento dos GTFS. Nada pago foi adicionado.
 - `VITE_TRANSPORT_API_BASE_URL` está reservada e **não é lida** por nenhum código ainda.
+
+
+## Campings e trabalho em troca
+Tela **Hospedagem** (`#hospedagem`): campings do OpenStreetMap (consulta Overpass, **testada só com respostas simuladas**),
+oportunidades de work exchange aprovadas (tabela no Supabase, **sem registros por padrão**), detalhes com fonte, licença e
+data, ação **Como chegar** (reutiliza os provedores de transporte; sem fonte configurada informa "Roteamento ainda não
+configurado" e oferece link externo de mapa, não validado pelo app) e **Adicionar ao planejador**, cujo total fica parcial
+enquanto houver custo ou transporte desconhecido. Detalhes, licenças e pendências em `docs/stays.md`.

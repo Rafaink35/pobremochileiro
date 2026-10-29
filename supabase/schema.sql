@@ -118,3 +118,86 @@ insert into public.communities (slug, name, description, kind) values
   ('viagem-barata', 'Voos e ônibus baratos', 'Como achar passagem mais barata e montar combos.', 'tema'),
   ('mochilao-internacional', 'Mochilão internacional', 'Roteiros e dúvidas de quem vai para fora do Brasil.', 'tema')
 on conflict (slug) do nothing;
+
+-- ───────────────── Feed com fotos, dicas, curtidas e comentários ─────────────────
+alter table public.posts
+  add column if not exists images text[] not null default '{}' check (cardinality(images) <= 4),
+  add column if not exists place_name text check (char_length(place_name) <= 80),
+  add column if not exists tip text check (char_length(tip) <= 500),
+  add column if not exists trip_cost_brl numeric(10, 2) check (trip_cost_brl >= 0),
+  add column if not exists trip_days integer check (trip_days between 1 and 365),
+  add column if not exists hidden boolean not null default false;
+
+alter table public.posts drop constraint if exists posts_type_check;
+alter table public.posts add constraint posts_type_check check (
+  type in ('Planejamento', 'Natureza', 'Cidade', 'Praia', 'Dica', 'Camping', 'Trabalho em troca', 'Ônibus e voos', 'Perrengue')
+);
+
+-- Relatos ocultos (denúncias) só o autor enxerga.
+drop policy if exists "posts: leitura pública" on public.posts;
+create policy "posts: leitura pública" on public.posts for select using (hidden = false or user_id = auth.uid());
+
+create table if not exists public.post_likes (
+  post_id uuid not null references public.posts (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  primary key (post_id, user_id)
+);
+create table if not exists public.post_comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  author_name text not null check (char_length(author_name) between 1 and 40),
+  body text not null check (char_length(body) between 1 and 500),
+  created_at timestamptz not null default now()
+);
+create table if not exists public.post_reports (
+  post_id uuid not null references public.posts (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  reason text check (char_length(reason) <= 300),
+  created_at timestamptz not null default now(),
+  primary key (post_id, user_id)
+);
+
+alter table public.post_likes enable row level security;
+alter table public.post_comments enable row level security;
+alter table public.post_reports enable row level security;
+
+create policy "likes: vê as próprias" on public.post_likes for select to authenticated using (user_id = auth.uid());
+create policy "likes: curte" on public.post_likes for insert to authenticated with check (user_id = auth.uid());
+create policy "likes: descurte" on public.post_likes for delete to authenticated using (user_id = auth.uid());
+create policy "comments: leitura pública" on public.post_comments for select using (true);
+create policy "comments: autor comenta" on public.post_comments for insert to authenticated with check (user_id = auth.uid());
+create policy "comments: autor apaga" on public.post_comments for delete to authenticated using (user_id = auth.uid());
+-- Denúncias: qualquer logado denuncia; só a moderação lê (painel do Supabase).
+create policy "reports: denuncia" on public.post_reports for insert to authenticated with check (user_id = auth.uid());
+
+-- Contagem pública de curtidas sem expor quem curtiu.
+create or replace function public.post_like_counts(ids uuid[])
+returns table (post_id uuid, likes bigint)
+language sql security definer set search_path = public as $$
+  select l.post_id, count(*) from public.post_likes l where l.post_id = any (ids) group by l.post_id;
+$$;
+grant execute on function public.post_like_counts(uuid[]) to anon, authenticated;
+
+-- Com 3 denúncias de pessoas diferentes o relato fica oculto até a moderação revisar. Não substitui moderação humana.
+create or replace function public.hide_reported_post() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if (select count(*) from public.post_reports r where r.post_id = new.post_id) >= 3 then
+    update public.posts set hidden = true where id = new.post_id;
+  end if;
+  return new;
+end $$;
+drop trigger if exists post_reports_hide on public.post_reports;
+create trigger post_reports_hide after insert on public.post_reports for each row execute function public.hide_reported_post();
+
+-- Fotos: bucket público para leitura; cada pessoa escreve só na própria pasta (<user_id>/arquivo.jpg).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('post-images', 'post-images', true, 2097152, array['image/jpeg', 'image/webp'])
+on conflict (id) do update set file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+create policy "post-images: leitura pública" on storage.objects for select using (bucket_id = 'post-images');
+create policy "post-images: envia na própria pasta" on storage.objects for insert to authenticated
+  with check (bucket_id = 'post-images' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "post-images: apaga as próprias" on storage.objects for delete to authenticated
+  using (bucket_id = 'post-images' and (storage.foldername(name))[1] = auth.uid()::text);

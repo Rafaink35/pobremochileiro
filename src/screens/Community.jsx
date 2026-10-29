@@ -7,6 +7,7 @@ import { useSession } from '../hooks/useSession.js';
 import { useCommunities } from '../hooks/useCommunities.js';
 import { canPost, memberLabel, POST_BLOCK_MESSAGE } from '../services/community/model.js';
 import { AuthPanel, Composer } from '../components/CommunityPanels.jsx';
+import { PostCard } from '../components/PostCard.jsx';
 
 function timeAgo(iso) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
@@ -15,7 +16,7 @@ function timeAgo(iso) {
 export function Community({ onNewPost, onSavePost }) {
   const session = useSession();
   const [selectedId, setSelectedId] = useState(null); // null = todas as comunidades
-  const live = usePosts(selectedId);
+  const live = usePosts(selectedId, session);
   const groups = useCommunities(session);
   const [panel, setPanel] = useState(null);
   const [notice, setNotice] = useState('');
@@ -23,20 +24,7 @@ export function Community({ onNewPost, onSavePost }) {
 
   // Com backend: feed real. Sem backend (ou se falhar): exemplos de interface.
   const isLive = hasBackend && live.status === 'ready';
-  const items = isLive
-    ? live.posts.map((p) => ({
-        key: p.id,
-        id: p.id,
-        initials: p.author_name.slice(0, 2).toUpperCase(),
-        name: p.author_name,
-        time: timeAgo(p.created_at),
-        title: p.title,
-        text: p.body,
-        type: p.type,
-        mine: session?.user.id === p.user_id,
-        community: p.communities?.name ?? null,
-      }))
-    : demoPosts.map((p) => ({ ...p, key: p.title }));
+  const items = demoPosts.map((p) => ({ ...p, key: p.title }));
 
   const newPost = () => {
     if (!hasBackend) return onNewPost();
@@ -130,7 +118,7 @@ export function Community({ onNewPost, onSavePost }) {
 
       {panel === 'auth' && <AuthPanel onDone={() => setPanel('compose')} />}
       {panel === 'compose' && session && (
-        <Composer onSubmit={(f) => live.publish(session, f, selectedId)} onDone={() => setPanel(null)} />
+        <Composer onSubmit={(f, blobs) => live.publish(session, f, blobs, selectedId)} onDone={() => setPanel(null)} />
       )}
       {hasBackend && session && (
         <button className="post-remove" onClick={() => supabase.auth.signOut()}>
@@ -142,7 +130,14 @@ export function Community({ onNewPost, onSavePost }) {
       )}
 
       <div className="community-feed">
-        {items.map((p) => (
+        {isLive && live.posts.length === 0 && (
+          <p className="data-note">Ainda não há relatos{selected ? ' nesta comunidade' : ''}. Seja a primeira pessoa a contar.</p>
+        )}
+        {isLive &&
+          live.posts.map((p) => (
+            <PostCard key={p.id} post={p} session={session} actions={live} onNeedLogin={() => setPanel('auth')} />
+          ))}
+        {!isLive && items.map((p) => (
           <article className="community-post" key={p.key}>
             <div className="post-author">
               <span className="avatar" aria-hidden="true">

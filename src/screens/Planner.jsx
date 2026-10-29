@@ -22,14 +22,14 @@ const DAY_OPTIONS = ['1', '2', '3', '4', '5', '7', '10', '14'];
 export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
   const { tripName, origin, days, budget } = draft;
 
-  const addTransport = (rows) =>
+  const addItems = (rows, category = 'Transporte') =>
     setDraft((old) => ({
       ...old,
       items: [
         ...(old.items || []),
         ...rows.map((r) => ({
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          category: 'Transporte',
+          category,
           ...r,
         })),
       ],
@@ -138,11 +138,11 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
 
       <WhiteLabelSearch />
 
-      <FlexSearch onUseInPlan={addTransport} />
+      <FlexSearch onUseInPlan={addItems} />
 
-      <ComboCompare onUseInPlan={addTransport} />
+      <ComboCompare onUseInPlan={addItems} />
 
-      <MoreSearch />
+      <MoreSearch onUseInPlan={addItems} />
 
 
       <details className="flights-fallback">

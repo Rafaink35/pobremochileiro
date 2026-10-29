@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { ArrowUpRight, Search } from 'lucide-react';
+import { parseBRL } from '../api/fx.js';
 import { searchGroups, searchUrl } from '../data/searchSites.js';
 
 const LABELS = { origem: 'Saindo de', destino: 'Indo para', data: 'Data (opcional)', lugar: 'Cidade ou país' };
 
-export function MoreSearch() {
+export function MoreSearch({ onUseInPlan }) {
   const [groupId, setGroupId] = useState('bus');
   const [values, setValues] = useState({});
+  const [save, setSave] = useState({ site: '', amount: '', url: '' });
+  const [saveMsg, setSaveMsg] = useState('');
+  const setS = (k) => (e) => setSave((v) => ({ ...v, [k]: e.target.value }));
   const group = searchGroups.find((g) => g.id === groupId);
   const set = (k) => (e) => setValues((v) => ({ ...v, [k]: e.target.value }));
 
@@ -20,6 +24,24 @@ export function MoreSearch() {
     const base = { camping: 'camping', volunteer: 'voluntariado', aupair: 'au pair' }[group.id];
     return [base, v('lugar')].filter(Boolean).join(' ');
   })();
+
+  const CATEGORY = { bus: 'Transporte', camping: 'Hospedagem', volunteer: 'Hospedagem', aupair: 'Hospedagem' };
+  const saveExpense = (e) => {
+    e.preventDefault();
+    const amount = parseBRL(save.amount);
+    const url = save.url.trim();
+    if (!(amount >= 0)) return setSaveMsg('Digite o valor em reais.');
+    if (url && !/^https:\/\//i.test(url)) return setSaveMsg('O link precisa começar com https://');
+    const label = [group.label, query.replace(/^(camping|voluntariado|au pair|passagem de ônibus)\s?/, '')]
+      .filter(Boolean)
+      .join(': ');
+    onUseInPlan?.(
+      [{ label, amount: amount.toFixed(2).replace('.', ','), url, source: save.site.trim() || 'site' }],
+      CATEGORY[group.id],
+    );
+    setSave({ site: '', amount: '', url: '' });
+    setSaveMsg('Adicionado ao plano ✓');
+  };
 
   return (
     <section className="more-search">
@@ -60,6 +82,24 @@ export function MoreSearch() {
           </li>
         ))}
       </ul>
+      <form onSubmit={saveExpense} className="flights-form">
+        <label>
+          Site onde achou
+          <input value={save.site} onChange={setS('site')} placeholder="Ex.: Buser" />
+        </label>
+        <label>
+          Valor (R$)
+          <input inputMode="decimal" value={save.amount} onChange={setS('amount')} placeholder="120" required />
+        </label>
+        <label>
+          Link da oferta
+          <input value={save.url} onChange={setS('url')} placeholder="https://..." />
+        </label>
+        <button className="btn-outline" type="submit">
+          Salvar gasto no plano
+        </button>
+      </form>
+      {saveMsg && <p role="status">{saveMsg}</p>}
       <p className="flights-note">
         {group.note} Esses sites não têm integração com o app: abrimos uma pesquisa para você, e a compra ou a inscrição
         acontece lá.

@@ -212,3 +212,8 @@ fonte são descartados no servidor. Exige `ANTHROPIC_API_KEY` e login; **testado
 
 **Chat com streaming:** o Planejador agora tem um chat com o assistente (`/api/chat`, respostas em NDJSON). Testado com IA e
 fontes simuladas, e a tela no navegador com um servidor simulado; streaming real na Netlify não validado. Ver `docs/roteiro-ai.md`.
+
+
+## Comunidades
+Grupos por tema ou destino na aba Comunidade: filtro do feed, entrar e sair, publicar só como membro (regra também no banco).
+Criação de comunidades pela moderação. Detalhes e passos em `docs/comunidades.md`.

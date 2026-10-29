@@ -123,3 +123,9 @@
 .chat-form { display: flex; flex-wrap: wrap; gap: 8px; }
 .chat-form input { flex: 1 1 220px; padding: 10px; border: 1px solid #0b3d2e55; border-radius: 10px; font: inherit; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.community-groups { margin-bottom: 16px; }
+.community-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.community-header h2 { margin: 0 0 4px; }
+.community-header p { margin: 0 0 6px; }
+.community-tag { margin-left: 6px; background: #f6ead0; color: #98613e; }

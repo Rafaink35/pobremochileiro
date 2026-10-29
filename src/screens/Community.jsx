@@ -4,6 +4,8 @@ import { posts as demoPosts } from '../data/posts.js';
 import { hasBackend, supabase } from '../api/supabase.js';
 import { usePosts } from '../hooks/usePosts.js';
 import { useSession } from '../hooks/useSession.js';
+import { useCommunities } from '../hooks/useCommunities.js';
+import { canPost, memberLabel, POST_BLOCK_MESSAGE } from '../services/community/model.js';
 import { AuthPanel, Composer } from '../components/CommunityPanels.jsx';
 
 function timeAgo(iso) {
@@ -12,8 +14,12 @@ function timeAgo(iso) {
 
 export function Community({ onNewPost, onSavePost }) {
   const session = useSession();
-  const live = usePosts();
+  const [selectedId, setSelectedId] = useState(null); // null = todas as comunidades
+  const live = usePosts(selectedId);
+  const groups = useCommunities(session);
   const [panel, setPanel] = useState(null);
+  const [notice, setNotice] = useState('');
+  const selected = groups.communities.find((c) => c.id === selectedId) ?? null;
 
   // Com backend: feed real. Sem backend (ou se falhar): exemplos de interface.
   const isLive = hasBackend && live.status === 'ready';
@@ -28,12 +34,30 @@ export function Community({ onNewPost, onSavePost }) {
         text: p.body,
         type: p.type,
         mine: session?.user.id === p.user_id,
+        community: p.communities?.name ?? null,
       }))
     : demoPosts.map((p) => ({ ...p, key: p.title }));
 
   const newPost = () => {
     if (!hasBackend) return onNewPost();
-    setPanel(session ? 'compose' : 'auth');
+    setNotice('');
+    const check = canPost(session, selected);
+    if (!check.allowed) {
+      if (check.reason === 'login') setPanel('auth');
+      else setNotice(POST_BLOCK_MESSAGE[check.reason]);
+      return;
+    }
+    setPanel('compose');
+  };
+
+  const toggleMembership = async () => {
+    setNotice('');
+    if (!session) return setPanel('auth');
+    try {
+      await (selected.joined ? groups.leave(selected.id) : groups.join(selected.id));
+    } catch {
+      setNotice('Não foi possível atualizar sua participação agora.');
+    }
   };
 
   return (
@@ -68,9 +92,45 @@ export function Community({ onNewPost, onSavePost }) {
         </button>
       </div>
 
+      {hasBackend && groups.status === 'error' && (
+        <p className="data-note">Não foi possível carregar as comunidades agora.</p>
+      )}
+      {hasBackend && groups.status === 'ready' && (
+        <div className="community-groups">
+          <div className="filter-row" role="group" aria-label="Comunidades">
+            <button className={'filter-chip' + (selectedId === null ? ' selected' : '')} aria-pressed={selectedId === null} onClick={() => setSelectedId(null)}>
+              Todas
+            </button>
+            {groups.communities.map((c) => (
+              <button key={c.id} className={'filter-chip' + (selectedId === c.id ? ' selected' : '')} aria-pressed={selectedId === c.id} onClick={() => setSelectedId(c.id)}>
+                {c.name}
+              </button>
+            ))}
+          </div>
+          {groups.communities.length === 0 && (
+            <p className="data-note">Nenhuma comunidade criada ainda. A moderação cadastra as comunidades no banco de dados.</p>
+          )}
+          {selected && (
+            <div className="community-header paper-card">
+              <div>
+                <h2>{selected.name}</h2>
+                {selected.description && <p>{selected.description}</p>}
+                <small>
+                  {selected.kind === 'destino' ? 'Comunidade de destino' : 'Comunidade de tema'} · {memberLabel(selected.members)}
+                </small>
+              </div>
+              <button className={selected.joined ? 'btn-outline' : 'btn-primary'} onClick={toggleMembership}>
+                {selected.joined ? 'Sair da comunidade' : 'Entrar na comunidade'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      {notice && <p role="alert" className="form-error">{notice}</p>}
+
       {panel === 'auth' && <AuthPanel onDone={() => setPanel('compose')} />}
       {panel === 'compose' && session && (
-        <Composer onSubmit={(f) => live.publish(session, f)} onDone={() => setPanel(null)} />
+        <Composer onSubmit={(f) => live.publish(session, f, selectedId)} onDone={() => setPanel(null)} />
       )}
       {hasBackend && session && (
         <button className="post-remove" onClick={() => supabase.auth.signOut()}>
@@ -102,6 +162,7 @@ export function Community({ onNewPost, onSavePost }) {
               </button>
             </div>
             <span className="feed-tag">{p.type}</span>
+            {p.community && <span className="feed-tag community-tag">{p.community}</span>}
             <h2>{p.title}</h2>
             <p>{p.text}</p>
             <div className="post-footer">

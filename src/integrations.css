@@ -112,3 +112,4 @@
 .stay-filters label.check { flex-direction: row; align-items: center; gap: 8px; }
 .plan-stays { margin-top: 16px; }
 .plan-stay { display: grid; gap: 4px; padding: 12px; border-radius: 12px; background: #fff; border: 1px solid #0b3d2e22; list-style: none; }
+.roteiro-ai { margin-top: 24px; }

@@ -17,3 +17,8 @@
   from = "/api/flex"
   to = "/.netlify/functions/flex"
   status = 200
+
+[[redirects]]
+  from = "/api/roteiro"
+  to = "/.netlify/functions/roteiro"
+  status = 200

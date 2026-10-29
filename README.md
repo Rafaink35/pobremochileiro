@@ -204,3 +204,8 @@ oportunidades de work exchange aprovadas (tabela no Supabase, **sem registros po
 data, ação **Como chegar** (reutiliza os provedores de transporte; sem fonte configurada informa "Roteamento ainda não
 configurado" e oferece link externo de mapa, não validado pelo app) e **Adicionar ao planejador**, cujo total fica parcial
 enquanto houver custo ou transporte desconhecido. Detalhes, licenças e pendências em `docs/stays.md`.
+
+
+## Roteiro mais barato com IA
+Assistente no Planejador (`/api/roteiro`, Claude API com ferramentas de câmbio, voos, campings e work exchange). Valores sem
+fonte são descartados no servidor. Exige `ANTHROPIC_API_KEY` e login; **testado só com simulações**. Ver `docs/roteiro-ai.md`.

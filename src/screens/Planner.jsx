@@ -1,6 +1,7 @@
 import { FxCard } from '../components/FxCard.jsx';
 import { FlightsCard } from '../components/FlightsCard.jsx';
 import { TripPlan } from '../components/TripPlan.jsx';
+import { RoteiroAI } from '../components/RoteiroAI.jsx';
 import { FlexSearch } from '../components/FlexSearch.jsx';
 import { MoreSearch } from '../components/MoreSearch.jsx';
 import { ComboCompare } from '../components/ComboCompare.jsx';
@@ -137,6 +138,8 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
       <TripPlan draft={draft} setDraft={setDraft} />
 
       <WhiteLabelSearch />
+
+      <RoteiroAI draft={draft} onUseInPlan={addItems} />
 
       <FlexSearch onUseInPlan={addItems} />
 

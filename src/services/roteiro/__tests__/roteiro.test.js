@@ -68,6 +68,19 @@ describe('ferramentas', () => {
   });
 });
 
+describe('chave do Supabase em formatos novo e antigo', () => {
+  const run = async (key) => {
+    let headers;
+    const tb = createToolbox({ env: { SUPABASE_URL: 'https://s.example', SUPABASE_ANON_KEY: key }, fetchImpl: async (u, o) => { headers = o.headers; return { ok: true, json: async () => [] }; } });
+    await tb.run('list_work_exchange', { place: 'Rio' });
+    return headers;
+  };
+  it('chave publishable vai só em apikey; chave JWT antiga também em Authorization', async () => {
+    expect(await run('sb_publishable_abc')).toEqual({ apikey: 'sb_publishable_abc' });
+    expect(await run('eyJhbGciOi.x.y')).toMatchObject({ apikey: 'eyJhbGciOi.x.y', authorization: 'Bearer eyJhbGciOi.x.y' });
+  });
+});
+
 describe('endpoint /api/roteiro', () => {
   const baseEnv = { ANTHROPIC_API_KEY: 'k', SUPABASE_URL: 'https://s.example', SUPABASE_ANON_KEY: 'a', TRAVELPAYOUTS_TOKEN: 't', TRAVELPAYOUTS_MARKER: '1' };
   const authFetch = (extra) => async (url, opts) => {

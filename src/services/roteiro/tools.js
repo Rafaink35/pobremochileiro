@@ -193,7 +193,8 @@ export function createToolbox({ env, fetchImpl, now = () => new Date(), plan = n
     async list_work_exchange({ place }) {
       if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return { results: [], note: 'cadastro de work exchange não configurado' };
       const res = await fetchImpl(`${env.SUPABASE_URL}/rest/v1/work_exchange_opportunities?status=eq.approved&select=*&limit=100`, {
-        headers: { apikey: env.SUPABASE_ANON_KEY, authorization: `Bearer ${env.SUPABASE_ANON_KEY}` },
+        // Chave nova (sb_publishable_...) não é JWT e vai só em `apikey`; a antiga (anon, JWT) também vai em Authorization.
+        headers: { apikey: env.SUPABASE_ANON_KEY, ...(env.SUPABASE_ANON_KEY.startsWith('eyJ') && { authorization: `Bearer ${env.SUPABASE_ANON_KEY}` }) },
       });
       if (!res.ok) return { results: [], note: `cadastro indisponível (${res.status})` };
       const { opportunities } = filterOpportunities(await res.json(), { place, now: now() });

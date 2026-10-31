@@ -30,9 +30,13 @@ export function usePosts(communityId = null, session = null) {
           userId ? supabase.from('post_likes').select('post_id').in('post_id', ids).eq('user_id', userId) : { data: [] },
         ])
       : [{ data: [] }, { data: [] }];
+    // Avatares: só de perfis públicos (a política do banco já esconde os privados).
+    const authorIds = [...new Set(data.map((p) => p.user_id))];
+    const { data: authors } = authorIds.length ? await supabase.from('profiles').select('id,avatar_config').in('id', authorIds) : { data: [] };
+    const avatars = new Map((authors ?? []).map((a) => [a.id, a.avatar_config]));
     const likeCounts = new Map((counts.data ?? []).map((r) => [r.post_id, Number(r.likes) || 0]));
     const likedIds = new Set((mine.data ?? []).map((r) => r.post_id));
-    setPosts(data.map((row) => normalizePost(row, { likeCounts, likedIds, urlFor })));
+    setPosts(data.map((row) => ({ ...normalizePost(row, { likeCounts, likedIds, urlFor }), avatar: avatars.get(row.user_id) ?? null })));
     setStatus('ready');
   }, [communityId, userId]);
 

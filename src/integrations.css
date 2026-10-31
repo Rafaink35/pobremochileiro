@@ -174,3 +174,13 @@
 .profile-card { display: grid; gap: 6px; }
 .swatch { display: inline-block; width: 22px; height: 22px; border-radius: 50%; border: 1px solid #0b3d2e44; }
 .danger-zone { margin-top: 24px; border-color: #e8785d88; }
+
+.avatar-art { border-radius: 50%; flex: none; display: block; }
+.avatar-editor { display: grid; gap: 10px; border: 1px solid #0b3d2e22; border-radius: 12px; padding: 12px; }
+.avatar-editor-top { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.avatar-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.avatar-fields label, .avatar-editor > label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 0.85rem; }
+.avatar-fields select, .avatar-editor select { padding: 8px; border: 1px solid #0b3d2e55; border-radius: 8px; font: inherit; }
+.icon-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.icon-choice { border: 2px solid transparent; border-radius: 50%; padding: 2px; background: transparent; }
+.icon-choice.on { border-color: #e8785d; }

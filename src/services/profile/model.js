@@ -1,3 +1,5 @@
+import { normalizeAvatar } from '../avatar/model.js';
+
 // Perfil mochileiro: regras puras (validação e formatação), sem depender do Supabase.
 
 export const USERNAME_RULE = /^[a-z0-9_]{3,20}$/;
@@ -37,6 +39,7 @@ export function normalizeProfile(row) {
     homeCity: row.home_city ?? '',
     travelStyles: Array.isArray(row.travel_styles) ? row.travel_styles : [],
     avatarColor: AVATAR_COLORS[row.avatar_color] ? row.avatar_color : 'green',
+    avatarConfig: normalizeAvatar(row.avatar_config),
     isPublic: row.is_public !== false,
   };
 }
@@ -67,6 +70,7 @@ export function profilePayload(f, { creating = true } = {}) {
     home_city: clean(f.homeCity),
     travel_styles: f.travelStyles ?? [],
     avatar_color: f.avatarColor ?? 'green',
+    avatar_config: normalizeAvatar(f.avatarConfig),
     is_public: f.isPublic !== false,
   };
 }

@@ -263,3 +263,9 @@ begin
 end $$;
 revoke all on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
+
+-- ───────────────── Avatar do perfil (personagem ou ícone) ─────────────────
+-- Guarda só IDs de escolhas visuais (nada de imagem, gênero ou orientação). Rode este bloco uma vez.
+alter table public.profiles
+  add column if not exists avatar_config jsonb
+  check (avatar_config is null or (jsonb_typeof(avatar_config) = 'object' and octet_length(avatar_config::text) < 600));

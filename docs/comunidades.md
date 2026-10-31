@@ -49,3 +49,13 @@ Cada relato pode ter até 4 fotos, lugar, **dica útil**, quanto gastou e dias d
 - **Para ligar:** rode de novo o `schema.sql` **só do bloco "Perfil mochileiro"** (as partes anteriores já existem).
 - Ainda não existe: perfil público de outras pessoas, seguir, foto de perfil, moderação de nomes de usuário (a lista de nomes reservados é mínima).
 - Validado só com testes de regras e com a interface contra respostas simuladas; as funções SQL nunca rodaram em um Supabase real.
+
+## Avatar do perfil
+- **Dois tipos:** *Personagem* (pessoa com mochila, montada por escolhas) e *Ícone* (12 desenhos prontos). A pessoa alterna entre eles e pode **sortear**.
+- **Inclusão:** 8 tons de pele; corpos magro, médio e gordo; 8 cabelos (careca, raspado, curto, longo, cacheado, black power, coque, tranças) em 8 cores; barba, bigode e cavanhaque;
+  chapéus, turbante/lenço e bandana; óculos; 3 expressões; bandeiras opcionais (arco-íris, trans, bi, não-binária, lésbica, pan).
+- **Privacidade:** o banco guarda só **IDs de escolhas visuais** (`profiles.avatar_config`, jsonb pequeno). Não existe campo de identidade de gênero nem de orientação (dado sensível, LGPD).
+  A bandeira é um adereço que a pessoa escolhe exibir. Valores fora do catálogo são descartados na leitura e nada do banco vira código SVG.
+- **Arte trocável:** `src/components/AvatarArt.jsx` desenha tudo com formas simples. Um(a) ilustrador(a) pode substituir os desenhos sem tocar nos perfis existentes.
+- **Para ligar:** rode no Supabase só o bloco "Avatar do perfil" do `schema.sql` (uma instrução `alter table`).
+- **Limites:** o acabamento é simples, sem foto de perfil, sem opções como cadeira de rodas ou bengala (a considerar), e o avatar nos relatos só aparece para perfis públicos.

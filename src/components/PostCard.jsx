@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Flag, Heart, Lightbulb, MapPin, MessageCircle, Trash2 } from 'lucide-react';
 import { costLabel } from '../services/community/postModel.js';
 import { supabase } from '../api/supabase.js';
+import { AvatarArt } from './AvatarArt.jsx';
 
 const day = (iso) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 
@@ -92,7 +93,7 @@ export function PostCard({ post, session, profile, actions, onNeedLogin, onNeedP
   return (
     <article className="community-post insta-post">
       <div className="post-author">
-        <span className="avatar" aria-hidden="true">{post.author.slice(0, 2).toUpperCase()}</span>
+        <AvatarArt config={post.avatar} size={36} fallback={post.author.slice(0, 2).toUpperCase()} />
         <div>
           <b>{post.author}</b>
           <small>{day(post.createdAt)}{post.place ? ` · ${post.place}` : ''}</small>

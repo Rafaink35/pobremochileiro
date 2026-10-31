@@ -40,7 +40,10 @@ describe('perfil', () => {
   });
   it('payload: vazio vira null, nome só ao criar', () => {
     const f = { username: 'Ana_V', displayName: ' ', bio: 'oi', homeCity: '', travelStyles: [], avatarColor: 'sage', isPublic: false };
-    expect(profilePayload(f)).toEqual({ username: 'ana_v', display_name: null, bio: 'oi', home_city: null, travel_styles: [], avatar_color: 'sage', is_public: false });
+    expect(profilePayload(f)).toEqual({ username: 'ana_v', display_name: null, bio: 'oi', home_city: null, travel_styles: [], avatar_color: 'sage', avatar_config: null, is_public: false });
+    // avatar: só valores do catálogo vão para o banco
+    expect(profilePayload({ ...f, avatarConfig: { kind: 'person', skin: 's7', body: 'gordo', hat: 'x', extra: 1 } }).avatar_config).toMatchObject({ kind: 'person', skin: 's7', body: 'gordo', hat: 'nenhum' });
+    expect('extra' in profilePayload({ ...f, avatarConfig: { kind: 'person', extra: 1 } }).avatar_config).toBe(false);
     expect('username' in profilePayload(f, { creating: false })).toBe(false);
   });
   it('mensagens de erro do banco', () => {

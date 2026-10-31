@@ -1,17 +1,15 @@
 import { useState } from 'react';
-import { AVATAR_COLORS, MAX_STYLES, TRAVEL_STYLES, initials, suggestUsername, validateProfileForm } from '../services/profile/model.js';
+import { MAX_STYLES, TRAVEL_STYLES, initials, suggestUsername, validateProfileForm } from '../services/profile/model.js';
+
+import { AvatarArt } from './AvatarArt.jsx';
+import { AvatarEditor } from './AvatarEditor.jsx';
+import { DEFAULT_PERSON } from '../services/avatar/model.js';
 
 export function Avatar({ profile, size = 44 }) {
-  const color = AVATAR_COLORS[profile?.avatarColor ?? 'green'];
-  const dark = ['green', 'coral'].includes(profile?.avatarColor ?? 'green');
-  return (
-    <span className="profile-avatar" aria-hidden="true" style={{ width: size, height: size, background: color, color: dark ? '#fff9ed' : '#0b3d2e', fontSize: size * 0.4 }}>
-      {initials(profile)}
-    </span>
-  );
+  return <AvatarArt config={profile?.avatarConfig} size={size} fallback={initials(profile)} />;
 }
 
-const EMPTY = { username: '', displayName: '', bio: '', homeCity: '', travelStyles: [], avatarColor: 'green', isPublic: true };
+const EMPTY = { username: '', displayName: '', bio: '', homeCity: '', travelStyles: [], avatarColor: 'green', avatarConfig: { ...DEFAULT_PERSON }, isPublic: true };
 
 /** Criar (mode="create", pede o nome de usuário) ou editar (mode="edit") o perfil. */
 export function ProfileForm({ mode = 'create', initial = null, onSubmit, onCancel }) {
@@ -76,15 +74,7 @@ export function ProfileForm({ mode = 'create', initial = null, onSubmit, onCance
           </label>
         ))}
       </fieldset>
-      <fieldset className="trip-prefs">
-        <legend>Cor do seu avatar</legend>
-        {Object.keys(AVATAR_COLORS).map((c) => (
-          <label key={c} className="check">
-            <input type="radio" name="avatar-color" checked={form.avatarColor === c} onChange={() => setForm((f) => ({ ...f, avatarColor: c }))} />
-            <span className="swatch" style={{ background: AVATAR_COLORS[c] }} aria-label={c} />
-          </label>
-        ))}
-      </fieldset>
+      <AvatarEditor value={form.avatarConfig} onChange={(avatarConfig) => setForm((f) => ({ ...f, avatarConfig }))} />
       <label className="check">
         <input type="checkbox" checked={form.isPublic} onChange={(e) => setForm((f) => ({ ...f, isPublic: e.target.checked }))} />
         Perfil público (nome de usuário, bio, cidade e estilos). Se desmarcar, só o seu nome de usuário aparece nos relatos.

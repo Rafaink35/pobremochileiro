@@ -165,3 +165,5 @@
 .trip-claim.claim-confirmed { background: #cfe8d3; }
 .trip-claim.claim-incomplete { background: #e8785d33; }
 @media (max-width: 640px) { .trip-lines { display: block; overflow-x: auto; } }
+
+.insta-post .feed-tag { justify-self: start; margin-top: 4px; }

@@ -26,7 +26,7 @@ export function AuthPanel({ onDone }) {
   const sendCode = (e) => {
     e.preventDefault();
     run(async () => {
-      const { error: err } = await supabase.auth.signInWithOtp({ email: email.trim() });
+      const { error: err } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: `${window.location.origin}/` } });
       if (err) throw err;
       setStep('code');
     });
@@ -51,12 +51,11 @@ export function AuthPanel({ onDone }) {
         </label>
       ) : (
         <label htmlFor="auth-code">
-          Código enviado para {email}
+          Enviamos um e-mail para {email}. Abra o <b>link</b> dele neste mesmo aparelho. Se o e-mail trouxer um código de 6 dígitos, digite aqui:
           <input
             id="auth-code"
             inputMode="numeric"
             autoComplete="one-time-code"
-            required
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
@@ -64,7 +63,7 @@ export function AuthPanel({ onDone }) {
       )}
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="btn-primary" disabled={busy}>
-        {step === 'email' ? 'Receber código' : 'Entrar'}
+        {step === 'email' ? 'Receber link de acesso' : 'Entrar com o código'}
       </button>
     </form>
   );

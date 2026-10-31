@@ -14,6 +14,8 @@ import { Discover } from './screens/Discover.jsx';
 import { DataSources } from './screens/DataSources.jsx';
 import { destinations } from './data/destinations.js';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
+import { supabase } from './api/supabase.js';
+import { consumeAuthHash } from './api/authLink.js';
 
 const SCREENS = ['Início', 'Explorar', 'Detalhe', 'Planejador', 'Comunidade', 'Salvos'];
 
@@ -57,6 +59,12 @@ export default function App() {
   const [toast, setToast] = useState('');
 
   const selected = destinations.find((d) => d.id === selectedId) || destinations[0];
+
+  // Login pelo link do e-mail: o Supabase volta com os tokens no hash da URL.
+  useEffect(() => {
+    if (supabase) consumeAuthHash(supabase, window.location.hash, { notify });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sincroniza com o botão voltar/avançar do navegador.
   useEffect(() => {

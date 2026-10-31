@@ -39,3 +39,13 @@ Cada relato pode ter até 4 fotos, lugar, **dica útil**, quanto gastou e dias d
 - Termos de uso, política de privacidade e canal de remoção de conteúdo são necessários (LGPD, direito de imagem, menores).
 - Custos: armazenamento e tráfego de imagens contam no plano do Supabase.
 - Validado só com testes de regras e com a interface contra respostas simuladas do Supabase, nunca contra um projeto real.
+
+## Perfil mochileiro
+- **Nome público = nome de usuário** (3 a 20 caracteres: letras minúsculas, números e `_`; não pode ser só números nem reservado). O e-mail **nunca** aparece:
+  o banco (gatilhos em `supabase/schema.sql`) define o nome exibido em relatos e comentários a partir do perfil, e trocar o nome atualiza os antigos.
+- **Perfil exigido** para publicar e comentar (curtir não exige). No primeiro relato a pessoa escolhe o nome de usuário.
+- Campos: nome de exibição, cidade de origem, bio (160), estilos de viagem (até 5), cor do avatar (iniciais, sem upload de foto), perfil público ou privado.
+- Tela `#perfil`: edita o perfil, lista os próprios relatos, sai e **apaga a conta** (apaga fotos do Storage e, pela função `delete_my_account()`, perfil, relatos, curtidas e comentários).
+- **Para ligar:** rode de novo o `schema.sql` **só do bloco "Perfil mochileiro"** (as partes anteriores já existem).
+- Ainda não existe: perfil público de outras pessoas, seguir, foto de perfil, moderação de nomes de usuário (a lista de nomes reservados é mínima).
+- Validado só com testes de regras e com a interface contra respostas simuladas; as funções SQL nunca rodaram em um Supabase real.

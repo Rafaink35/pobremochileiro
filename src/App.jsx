@@ -11,6 +11,9 @@ import { Saved } from './screens/Saved.jsx';
 import { Transport } from './screens/Transport.jsx';
 import { Stays } from './screens/Stays.jsx';
 import { Discover } from './screens/Discover.jsx';
+import { Profile } from './screens/Profile.jsx';
+import { useSession } from './hooks/useSession.js';
+import { useProfile } from './hooks/useProfile.js';
 import { DataSources } from './screens/DataSources.jsx';
 import { destinations } from './data/destinations.js';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
@@ -31,6 +34,7 @@ const SCREEN_TO_HASH = {
   Transporte: 'transporte',
   Hospedagem: 'hospedagem',
   Descubra: 'descubra',
+  Perfil: 'perfil',
   Fontes: 'fontes',
 };
 const HASH_TO_SCREEN = Object.fromEntries(Object.entries(SCREEN_TO_HASH).map(([k, v]) => [v, k]));
@@ -55,6 +59,8 @@ export default function App() {
   const [saved, setSaved] = useLocalStorage('pobre-mochileiro:saved', []);
   const [selectedId, setSelectedId] = useState(() => destinationIdFromHash() ?? destinations[0].id);
   const [draft, setDraft] = useLocalStorage('pobre-mochileiro:planner-draft', EMPTY_DRAFT);
+  const session = useSession();
+  const profileApi = useProfile(session);
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -129,9 +135,9 @@ export default function App() {
           </div>
           <button
             className="profile-chip"
-            onClick={() => notify('Perfil pessoal entra na próxima etapa.')}
+            onClick={() => go('Perfil')}
           >
-            <span aria-hidden="true">✳</span> Viajante em construção
+            <span aria-hidden="true">✳</span> {profileApi.profile ? `@${profileApi.profile.username}` : session ? 'Criar perfil' : 'Entrar'}
           </button>
         </div>
 
@@ -182,12 +188,15 @@ export default function App() {
 
         {screen === 'Comunidade' && (
           <Community
+            profileApi={profileApi}
             onNewPost={() => notify('Publicação de relatos entra na próxima etapa.')}
             onSavePost={() => notify('Salvamento de relatos será habilitado depois.')}
           />
         )}
 
         {screen === 'Transporte' && <Transport onNavigate={go} />}
+
+        {screen === 'Perfil' && <Profile session={session} profileApi={profileApi} onNavigate={go} notify={notify} />}
 
         {screen === 'Descubra' && <Discover setDraft={setDraft} onNavigate={go} />}
 

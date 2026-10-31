@@ -50,10 +50,9 @@ export function usePosts(communityId = null, session = null) {
         if (error) throw error;
         uploaded.push(path);
       }
-      const author = sess.user.email.split('@')[0];
       const { error } = await supabase
         .from('posts')
-        .insert({ user_id: sess.user.id, author_name: author, community_id: targetCommunityId, ...postPayload(form, uploaded) });
+        .insert({ user_id: sess.user.id, community_id: targetCommunityId, ...postPayload(form, uploaded) });
       if (error) throw error;
     } catch (err) {
       if (uploaded.length) await supabase.storage.from(BUCKET).remove(uploaded);

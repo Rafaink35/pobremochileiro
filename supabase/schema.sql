@@ -201,3 +201,65 @@ create policy "post-images: envia na própria pasta" on storage.objects for inse
   with check (bucket_id = 'post-images' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "post-images: apaga as próprias" on storage.objects for delete to authenticated
   using (bucket_id = 'post-images' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ───────────────── Perfil mochileiro ─────────────────
+-- O nome público passa a ser o nome de usuário (nunca o e-mail). Rode este bloco uma vez, depois dos anteriores.
+create table if not exists public.profiles (
+  id uuid primary key references auth.users (id) on delete cascade default auth.uid(),
+  username text not null unique
+    check (username ~ '^[a-z0-9_]{3,20}$' and username !~ '^[0-9_]+$'
+           and username not in ('admin', 'administrador', 'moderador', 'moderacao', 'suporte', 'equipe', 'oficial', 'pobremochileiro', 'pobre_mochileiro')),
+  display_name text check (char_length(display_name) <= 40),
+  bio text check (char_length(bio) <= 160),
+  home_city text check (char_length(home_city) <= 60),
+  travel_styles text[] not null default '{}' check (cardinality(travel_styles) <= 5),
+  avatar_color text not null default 'green' check (avatar_color in ('green', 'yellow', 'coral', 'cream', 'sage')),
+  is_public boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.profiles enable row level security;
+create policy "profiles: leitura pública ou própria" on public.profiles for select using (is_public or id = auth.uid());
+create policy "profiles: cria o próprio" on public.profiles for insert to authenticated with check (id = auth.uid());
+create policy "profiles: edita o próprio" on public.profiles for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
+create policy "profiles: apaga o próprio" on public.profiles for delete to authenticated using (id = auth.uid());
+
+-- Publicar e comentar exigem perfil, e o nome exibido vem SEMPRE do perfil (não dá para forjar nem expor o e-mail).
+create or replace function public.set_author_name() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare u text;
+begin
+  select username into u from public.profiles where id = new.user_id;
+  if u is null then raise exception 'Crie seu perfil antes de publicar.'; end if;
+  new.author_name := u;
+  return new;
+end $$;
+drop trigger if exists posts_author_name on public.posts;
+create trigger posts_author_name before insert on public.posts for each row execute function public.set_author_name();
+drop trigger if exists comments_author_name on public.post_comments;
+create trigger comments_author_name before insert on public.post_comments for each row execute function public.set_author_name();
+
+-- Ao criar ou trocar o nome de usuário, relatos e comentários antigos passam a mostrar o novo nome
+-- (isso troca o nome que antes era o começo do e-mail).
+create or replace function public.sync_author_name() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  update public.posts set author_name = new.username where user_id = new.id;
+  update public.post_comments set author_name = new.username where user_id = new.id;
+  new.updated_at := now();
+  return new;
+end $$;
+drop trigger if exists profiles_sync_author on public.profiles;
+create trigger profiles_sync_author after insert or update of username on public.profiles for each row execute function public.sync_author_name();
+
+-- Apagar a própria conta: remove o usuário e, em cascata, perfil, relatos, curtidas e comentários.
+-- (As fotos no Storage são apagadas pelo app antes de chamar esta função.)
+create or replace function public.delete_my_account() returns void
+language plpgsql security definer set search_path = public, auth as $$
+begin
+  if auth.uid() is null then raise exception 'Não autenticado.'; end if;
+  delete from auth.users where id = auth.uid();
+end $$;
+revoke all on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;

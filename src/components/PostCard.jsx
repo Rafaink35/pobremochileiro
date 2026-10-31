@@ -5,7 +5,7 @@ import { supabase } from '../api/supabase.js';
 
 const day = (iso) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 
-function Comments({ postId, session }) {
+function Comments({ postId, session, profile, onNeedProfile }) {
   const [items, setItems] = useState(null);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
@@ -32,7 +32,7 @@ function Comments({ postId, session }) {
     if (!body) return;
     const { error: err } = await supabase
       .from('post_comments')
-      .insert({ post_id: postId, user_id: session.user.id, author_name: session.user.email.split('@')[0], body });
+      .insert({ post_id: postId, user_id: session.user.id, body });
     if (err) return setError('Não foi possível comentar agora.');
     setText('');
     await load();
@@ -56,7 +56,11 @@ function Comments({ postId, session }) {
         ))}
       </ul>
       {error && <p role="alert" className="form-error">{error}</p>}
-      {session ? (
+      {session && !profile ? (
+        <p className="data-note">
+          Crie seu perfil para comentar. <button className="post-remove" onClick={onNeedProfile}>Criar perfil</button>
+        </p>
+      ) : session ? (
         <form onSubmit={send} className="chat-form">
           <label className="sr-only" htmlFor={`c-${postId}`}>Comentário</label>
           <input id={`c-${postId}`} value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder="Escreva um comentário" />
@@ -70,7 +74,7 @@ function Comments({ postId, session }) {
 }
 
 // Relato no estilo feed: fotos, texto, dica útil, curtir, comentar e denunciar.
-export function PostCard({ post, session, actions, onNeedLogin }) {
+export function PostCard({ post, session, profile, actions, onNeedLogin, onNeedProfile }) {
   const [open, setOpen] = useState(false);
   const [msg, setMsg] = useState('');
   const mine = session?.user.id === post.userId;
@@ -138,7 +142,7 @@ export function PostCard({ post, session, actions, onNeedLogin }) {
         </p>
       )}
       {msg && <p role="status" className="data-note">{msg}</p>}
-      {open && <Comments postId={post.id} session={session} />}
+      {open && <Comments postId={post.id} session={session} profile={profile} onNeedProfile={onNeedProfile} />}
     </article>
   );
 }

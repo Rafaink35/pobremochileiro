@@ -8,12 +8,13 @@ import { useCommunities } from '../hooks/useCommunities.js';
 import { canPost, memberLabel, POST_BLOCK_MESSAGE } from '../services/community/model.js';
 import { AuthPanel, Composer } from '../components/CommunityPanels.jsx';
 import { PostCard } from '../components/PostCard.jsx';
+import { ProfileForm } from '../components/ProfileForm.jsx';
 
 function timeAgo(iso) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
-export function Community({ onNewPost, onSavePost }) {
+export function Community({ onNewPost, onSavePost, profileApi }) {
   const session = useSession();
   const [selectedId, setSelectedId] = useState(null); // null = todas as comunidades
   const live = usePosts(selectedId, session);
@@ -33,6 +34,10 @@ export function Community({ onNewPost, onSavePost }) {
     if (!check.allowed) {
       if (check.reason === 'login') setPanel('auth');
       else setNotice(POST_BLOCK_MESSAGE[check.reason]);
+      return;
+    }
+    if (profileApi && profileApi.status === 'ready' && !profileApi.profile) {
+      setPanel('profile');
       return;
     }
     setPanel('compose');
@@ -116,6 +121,16 @@ export function Community({ onNewPost, onSavePost }) {
       )}
       {notice && <p role="alert" className="form-error">{notice}</p>}
 
+      {panel === 'profile' && session && (
+        <ProfileForm
+          mode="create"
+          onSubmit={async (f) => {
+            await profileApi.save(f, { creating: true });
+            setPanel('compose');
+          }}
+          onCancel={() => setPanel(null)}
+        />
+      )}
       {panel === 'auth' && <AuthPanel onDone={() => setPanel('compose')} />}
       {panel === 'compose' && session && (
         <Composer onSubmit={(f, blobs) => live.publish(session, f, blobs, selectedId)} onDone={() => setPanel(null)} />
@@ -135,7 +150,7 @@ export function Community({ onNewPost, onSavePost }) {
         )}
         {isLive &&
           live.posts.map((p) => (
-            <PostCard key={p.id} post={p} session={session} actions={live} onNeedLogin={() => setPanel('auth')} />
+            <PostCard key={p.id} post={p} session={session} profile={profileApi?.profile} actions={live} onNeedLogin={() => setPanel('auth')} onNeedProfile={() => setPanel('profile')} />
           ))}
         {!isLive && items.map((p) => (
           <article className="community-post" key={p.key}>

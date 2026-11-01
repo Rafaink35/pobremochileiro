@@ -190,3 +190,22 @@
 .mascot-options .icon-choice { padding: 2px; }
 .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 6px; max-height: 340px; overflow-y: auto; padding: 2px; }
 .gallery-grid .icon-choice { padding: 2px; justify-self: center; }
+.route-explorer { display: grid; gap: 14px; margin-bottom: 28px; }
+.route-card { background: var(--paper, #fffdf7); border: 1px solid var(--line, #e6dece); border-radius: 16px; padding: 18px; }
+.route-card h2 { font: 600 1.25rem/1.2 Fredoka, sans-serif; color: var(--green, #0b3d2e); margin: 0 0 12px; }
+.route-subhead { font: 600 1.05rem Fredoka, sans-serif; color: var(--green, #0b3d2e); margin: 28px 0 8px; }
+.route-list, .route-hotels { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.route-option { border: 1px solid var(--line, #e6dece); border-radius: 12px; background: #fffaf0; }
+.route-link { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; color: inherit; text-decoration: none; align-items: flex-start; }
+a.route-link:hover { background: #f6f0e4; border-radius: 12px; }
+.route-main p { margin: 4px 0 2px; font-size: 0.85rem; color: #4d6357; }
+.route-main small, .route-price small { color: #78847a; font-size: 0.75rem; display: block; }
+.route-modes { display: inline-flex; gap: 6px; margin-left: 8px; color: #1f7a5a; vertical-align: middle; }
+.route-best { margin-left: 8px; background: #d9efe0; color: #0b3d2e; font-style: normal; font-weight: 800; font-size: 0.65rem; padding: 3px 7px; border-radius: 6px; letter-spacing: .5px; }
+.route-price { text-align: right; display: grid; justify-items: end; gap: 2px; color: #c2185b; white-space: nowrap; }
+.route-price b { font-size: 1.05rem; color: #b94e32; }
+.route-links { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 12px; }
+.route-more { width: 100%; margin-top: 12px; }
+.route-hotels { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.route-hotels li { border: 1px solid var(--line, #e6dece); border-radius: 12px; padding: 12px; background: #fffaf0; display: grid; gap: 2px; }
+.route-hotels small { color: #78847a; }

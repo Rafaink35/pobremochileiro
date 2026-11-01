@@ -1,3 +1,4 @@
+import { RouteExplorer } from '../components/RouteExplorer.jsx';
 import { TransportSearch } from '../components/TransportSearch.jsx';
 
 export function Transport({ onNavigate }) {
@@ -15,6 +16,8 @@ export function Transport({ onNavigate }) {
           </p>
         </div>
       </div>
+      <RouteExplorer onNavigate={onNavigate} />
+      <h2 className="route-subhead">Trechos de ônibus e trem por arquivo GTFS</h2>
       <TransportSearch />
       <p className="flights-note">
         <button className="back-link" onClick={() => onNavigate('Fontes')}>

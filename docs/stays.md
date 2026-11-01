@@ -42,3 +42,10 @@ multiusuário. Salvar planos por conta exige backend.
 - Projeto Supabase (tabela e moderação) para work exchange.
 - Fonte de transporte configurada (GTFS autorizado importado ou OpenTripPlanner) para mostrar rotas.
 - Para escala: cache/servidor próprio do Overpass ou extrato OSM, evitando consultas públicas repetidas.
+
+## Hotéis, hostels e au pair (adicionado em 01/11/2026)
+
+- **Hotéis e hostels:** mesma fonte e mesma regra dos campings (OpenStreetMap, `tourism=hotel|motel|guest_house` e `tourism=hostel`).
+  O OSM quase nunca traz preço: o app mostra "não informado" e oferece pesquisa nos sites (Booking.com, Hostelworld) e o link
+  de afiliado quando ele estiver preenchido em `src/data/partners.js`.
+- **Au pair:** não há base aberta. A aba só orienta e leva às agências (AuPairWorld, Cultural Care); nenhuma vaga é listada.

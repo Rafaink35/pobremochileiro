@@ -27,14 +27,27 @@ export function validatePlaceQuery(place) {
   return text;
 }
 
-/** Consulta todos os campings e áreas de motorhome dentro das áreas administrativas com esse nome. */
-export function buildOverpassQuery(place) {
+// Categorias de hospedagem buscadas no OSM (tag tourism=*).
+export const LODGING_CATEGORIES = Object.freeze({
+  camping: ['camp_site', 'caravan_site'],
+  hotel: ['hotel', 'motel', 'guest_house'],
+  hostel: ['hostel'],
+});
+const ALL_KINDS = Object.values(LODGING_CATEGORIES).flat();
+const EMPTY_MESSAGE = {
+  camping: 'Nenhum camping cadastrado no OpenStreetMap para essa área.',
+  hotel: 'Nenhum hotel ou pousada cadastrado no OpenStreetMap para essa área.',
+  hostel: 'Nenhum hostel cadastrado no OpenStreetMap para essa área.',
+};
+
+/** Consulta os locais da categoria dentro das áreas administrativas com esse nome. */
+export function buildOverpassQuery(place, category = 'camping') {
   const name = escapeOverpass(place);
+  const kinds = LODGING_CATEGORIES[category] ?? LODGING_CATEGORIES.camping;
   return `[out:json][timeout:25];
 area["boundary"="administrative"]["name"~"^${name}$",i]->.a;
 (
-  nwr["tourism"="camp_site"](area.a);
-  nwr["tourism"="caravan_site"](area.a);
+${kinds.map((k) => `  nwr["tourism"="${k}"](area.a);`).join('\n')}
 );
 out center meta;`;
 }
@@ -60,7 +73,7 @@ export function parseCharge(text) {
 /** Converte um elemento do Overpass em registro de camping. Retorna null sem coordenadas válidas. */
 export function normalizeOsmElement(el, { collectedAt }) {
   const tags = el.tags ?? {};
-  const kind = tags.tourism === 'caravan_site' ? 'caravan_site' : tags.tourism === 'camp_site' ? 'camp_site' : null;
+  const kind = ALL_KINDS.includes(tags.tourism) ? tags.tourism : null;
   if (!kind) return null;
   const coords = validateCoordinates(el.lat ?? el.center?.lat, el.lon ?? el.center?.lon);
   if (!coords) return null;
@@ -102,6 +115,7 @@ export function normalizeOsmElement(el, { collectedAt }) {
     email: clean(tags.email) ?? clean(tags['contact:email']),
     openingHours: clean(tags.opening_hours),
     access: clean(tags.access),
+    stars: /^[1-5]$/.test(String(tags.stars ?? '').trim()) ? Number(tags.stars) : null,
     openStatus: 'unknown', // o OSM não garante que o local está aberto ou aceita hóspedes hoje
     source,
     sources: [source],
@@ -125,7 +139,7 @@ export function parseOverpassResponse(json, { collectedAt }) {
 /** Busca campings numa área nomeada. Nunca lança: falhas viram status "unavailable". */
 export async function fetchOsmCampings(
   place,
-  { fetchImpl = (...a) => fetch(...a), endpoint = DEFAULT_OVERPASS_URL, now = () => new Date() } = {},
+  { category = 'camping', fetchImpl = (...a) => fetch(...a), endpoint = DEFAULT_OVERPASS_URL, now = () => new Date() } = {},
 ) {
   const name = validatePlaceQuery(place);
   if (!name) {
@@ -135,7 +149,7 @@ export async function fetchOsmCampings(
     const res = await fetchImpl(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: `data=${encodeURIComponent(buildOverpassQuery(name))}`,
+      body: `data=${encodeURIComponent(buildOverpassQuery(name, category))}`,
     });
     if (!res.ok) throw new Error(`o serviço respondeu ${res.status}`);
     const collectedAt = now().toISOString();
@@ -146,7 +160,7 @@ export async function fetchOsmCampings(
       skipped,
       collectedAt,
       dataTimestamp,
-      message: records.length ? null : 'Nenhum camping cadastrado no OpenStreetMap para essa área.',
+      message: records.length ? null : EMPTY_MESSAGE[category] ?? EMPTY_MESSAGE.camping,
     };
   } catch (err) {
     return {

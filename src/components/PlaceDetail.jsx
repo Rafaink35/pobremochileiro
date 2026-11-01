@@ -23,6 +23,8 @@ function Row({ label, children }) {
   );
 }
 
+const KIND_LABEL = { camp_site: 'Camping', caravan_site: 'Área de motorhome/caravana', hotel: 'Hotel', motel: 'Motel', guest_house: 'Pousada ou casa de hóspedes', hostel: 'Hostel' };
+
 function CampingInfo({ c }) {
   const feeText =
     c.fee === 'free'
@@ -34,10 +36,14 @@ function CampingInfo({ c }) {
         : 'não informado';
   return (
     <>
-      <Row label="Tipo">{c.kind === 'caravan_site' ? 'Área de motorhome/caravana' : 'Camping'}</Row>
+      <Row label="Tipo">{KIND_LABEL[c.kind] ?? 'Hospedagem'}{c.stars ? ` · ${c.stars} estrela(s)` : ''}</Row>
       <Row label="Cidade / estado">{[c.city, c.state].filter(Boolean).join(' / ') || null}</Row>
-      <Row label="Aceita barracas">{yesNo(c.tents)}</Row>
-      <Row label="Aceita caravanas">{yesNo(c.caravans)}</Row>
+      {(c.kind === 'camp_site' || c.kind === 'caravan_site') && (
+        <>
+          <Row label="Aceita barracas">{yesNo(c.tents)}</Row>
+          <Row label="Aceita caravanas">{yesNo(c.caravans)}</Row>
+        </>
+      )}
       <Row label="Preço">{feeText}</Row>
       <ul className="amenity-list">
         {Object.entries(AMENITY_LABEL).map(([k, label]) => (

@@ -137,3 +137,28 @@ describe('duplicatas e filtros', () => {
     expect(filterLodgings(list, { maxPrice: '10' }).records.map((r) => r.name)).toEqual(['G']);
   });
 });
+
+describe('hotéis e hostels', () => {
+  it('a consulta muda por categoria e a de camping continua igual', () => {
+    expect(buildOverpassQuery('Floripa')).toContain('"tourism"="camp_site"');
+    expect(buildOverpassQuery('Floripa', 'hostel')).toContain('"tourism"="hostel"');
+    expect(buildOverpassQuery('Floripa', 'hostel')).not.toContain('camp_site');
+    const hotel = buildOverpassQuery('Floripa', 'hotel');
+    for (const k of ['hotel', 'motel', 'guest_house']) expect(hotel).toContain(`"tourism"="${k}"`);
+  });
+  it('normaliza hotel sem inventar preço, estrelas ou disponibilidade', () => {
+    const h = normalizeOsmElement(node(11, { tourism: 'hotel', name: 'Hotel X' }), { collectedAt: NOW });
+    expect(h).toMatchObject({ kind: 'hotel', price: null, stars: null, fee: 'unknown', openStatus: 'unknown' });
+    expect(normalizeOsmElement(node(12, { tourism: 'hostel', name: 'H', stars: '3' }), { collectedAt: NOW })).toMatchObject({ kind: 'hostel', stars: 3 });
+    expect(normalizeOsmElement(node(13, { tourism: 'hostel', stars: 'luxo' }), { collectedAt: NOW }).stars).toBeNull();
+    expect(normalizeOsmElement(node(14, { tourism: 'museum' }), { collectedAt: NOW })).toBeNull();
+  });
+  it('busca de hostel usa a categoria pedida e a mensagem própria', async () => {
+    let body = '';
+    const fetchImpl = async (_u, o) => { body = decodeURIComponent(o.body); return { ok: true, json: async () => ({ elements: [] }) }; };
+    const r = await fetchOsmCampings('Floripa', { category: 'hostel', fetchImpl });
+    expect(body).toContain('"tourism"="hostel"');
+    expect(r.status).toBe(SEARCH_STATUS.EMPTY);
+    expect(r.message).toMatch(/hostel/i);
+  });
+});

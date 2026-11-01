@@ -79,7 +79,7 @@ export function TripPlan({ draft, setDraft }) {
             {stays.map((st) => (
               <li key={st.id} className="plan-stay">
                 <b>{st.name}</b>
-                <span>{st.kind === 'work_exchange' ? 'Trabalho em troca' : 'Camping'}</span>
+                <span>{{ work_exchange: 'Trabalho em troca', hotel: 'Hotel', hostel: 'Hostel' }[st.kind] ?? 'Camping'}</span>
                 <span>{costLabel(st.cost)}</span>
                 <span>
                   {st.transport.status === TRANSPORT_STATUS.CONFIRMED

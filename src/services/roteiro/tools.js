@@ -112,6 +112,16 @@ export const TOOL_DEFINITIONS = [
     input_schema: { type: 'object', properties: { place: { type: 'string' } }, required: ['place'] },
   },
   {
+    name: 'search_lodging',
+    description:
+      'Hospedagem do OpenStreetMap numa cidade, região ou estado: hotel (inclui pousada e motel), hostel ou camping. Quase nunca traz preço: se price_brl vier null, diga que o preço não é informado pela fonte e indique conferir no site do parceiro.',
+    input_schema: {
+      type: 'object',
+      properties: { place: { type: 'string' }, category: { type: 'string', enum: ['hotel', 'hostel', 'camping'] } },
+      required: ['place', 'category'],
+    },
+  },
+  {
     name: 'list_work_exchange',
     description: 'Oportunidades de trabalho em troca de hospedagem já aprovadas no app, filtradas por lugar (pode estar vazio).',
     input_schema: { type: 'object', properties: { place: { type: 'string' } }, required: ['place'] },
@@ -186,6 +196,21 @@ export function createToolbox({ env, fetchImpl, now = () => new Date(), plan = n
           const priceBRL = c.fee === 'free' ? 0 : c.price?.currency === 'BRL' ? c.price.amount : null;
           const id = register('camping', { priceBRL, url: c.source.sourceUrl, name: 'OpenStreetMap', label: c.name ?? 'Camping sem nome' });
           return { id, name: c.name, kind: c.kind, city: c.city, fee: c.fee, price_brl: priceBRL, price_unit_known: false, website: c.website };
+        }),
+      };
+    },
+
+    async search_lodging({ place, category }) {
+      const cat = ['hotel', 'hostel', 'camping'].includes(category) ? category : null;
+      if (!cat) return { error: 'category deve ser hotel, hostel ou camping' };
+      const r = await fetchOsmCampings(place, { category: cat, fetchImpl, now });
+      if (r.status !== 'ok') return { results: [], note: r.message };
+      return {
+        note: '© OpenStreetMap contributors (ODbL). Não garante que o local está aberto nem informa disponibilidade; preço quase nunca consta.',
+        results: dedupeLodgings(r.records).slice(0, 8).map((c) => {
+          const priceBRL = c.fee === 'free' ? 0 : c.price?.currency === 'BRL' ? c.price.amount : null;
+          const id = register(cat === 'camping' ? 'camping' : 'hospedagem', { priceBRL, url: c.source.sourceUrl, name: 'OpenStreetMap', label: c.name ?? 'Local sem nome' });
+          return { id, name: c.name, kind: c.kind, stars: c.stars, city: c.city, fee: c.fee, price_brl: priceBRL, price_unit_known: false, website: c.website };
         }),
       };
     },

@@ -132,3 +132,18 @@ describe('endpoint /api/roteiro', () => {
     expect((await h(req({ destination: 'BOG' }))).status).toBe(429);
   });
 });
+
+describe('ferramenta search_lodging', () => {
+  const osm = (tags) => async () => ({ ok: true, json: async () => ({ elements: [{ type: 'node', id: 1, lat: -23.5, lon: -46.6, tags }] }) });
+  it('devolve hostel do OSM sem inventar preço e registra a fonte', async () => {
+    const tb = createToolbox({ env: {}, fetchImpl: osm({ tourism: 'hostel', name: 'Hostel Z' }) });
+    const r = await tb.run('search_lodging', { place: 'São Paulo', category: 'hostel' });
+    expect(r.results).toHaveLength(1);
+    expect(r.results[0]).toMatchObject({ name: 'Hostel Z', kind: 'hostel', price_brl: null });
+    expect(tb.sources.get(r.results[0].id)).toMatchObject({ kind: 'hospedagem', priceBRL: null });
+  });
+  it('rejeita categoria fora da lista', async () => {
+    const tb = createToolbox({ env: {}, fetchImpl: osm({}) });
+    expect((await tb.run('search_lodging', { place: 'Rio', category: 'resort' })).error).toMatch(/hotel, hostel ou camping/);
+  });
+});

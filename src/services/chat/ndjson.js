@@ -55,6 +55,7 @@ export const TOOL_LABELS = {
   search_flex_dates: 'Comparando datas…',
   compare_combo: 'Comparando combos de ônibus e voo…',
   search_campings: 'Procurando campings…',
+  search_lodging: 'Procurando hotéis, hostels e campings…',
   list_work_exchange: 'Procurando trabalho em troca…',
   get_plan: 'Lendo o seu plano…',
   record_user_value: 'Anotando o valor que você informou…',

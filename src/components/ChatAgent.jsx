@@ -1,12 +1,14 @@
 import { useRef, useState } from 'react';
 import { MessageCircle, Plus, Send } from 'lucide-react';
 import { supabase, hasBackend } from '../api/supabase.js';
+import { BeforeTrip } from './BeforeTrip.jsx';
 import { applyChatEvent, emptyAssistantState, readNdjson } from '../services/chat/ndjson.js';
 
 const brl = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const SUGGESTIONS = [
   'Tenho R$ 3 mil e 15 dias. Para onde dá para ir?',
   'Qual o jeito mais barato de ir de GRU para Bogotá em janeiro?',
+  'Quero ir de São Paulo a Lisboa no mais barato possível, com hostel.',
   'Meu plano cabe no orçamento? O que falta?',
 ];
 
@@ -144,6 +146,7 @@ export function ChatAgent({ draft, onUseInPlan }) {
               </button>
             )}
           </form>
+          <BeforeTrip title="Reservar e conferir com parceiros" />
         </>
       )}
     </section>

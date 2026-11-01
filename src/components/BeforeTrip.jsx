@@ -1,12 +1,12 @@
 import { ArrowUpRight } from 'lucide-react';
 import { partners } from '../data/partners.js';
 
-export function BeforeTrip() {
+export function BeforeTrip({ title = 'Antes de viajar' }) {
   const items = partners.filter((p) => p.url.startsWith('https://'));
   if (items.length === 0) return null;
   return (
     <section className="before-trip">
-      <h3>Antes de viajar</h3>
+      <h3>{title}</h3>
       <div className="before-trip-grid">
         {items.map((p) => (
           <a key={p.id} className="before-trip-card" href={p.url} target="_blank" rel="noopener noreferrer sponsored">

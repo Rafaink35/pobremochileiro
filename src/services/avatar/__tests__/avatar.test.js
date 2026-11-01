@@ -113,3 +113,17 @@ describe('todas as combinações do kit', () => {
     expect(seen.size).toBe(540);
   });
 });
+
+describe('galeria de retratos ilustrados', () => {
+  it('guarda só o ID e cada ID tem um arquivo de imagem', async () => {
+    const { existsSync } = await import('node:fs');
+    const m = await import('../model.js');
+    expect(m.GALLERY).toHaveLength(24);
+    for (const g of m.GALLERY) expect(existsSync(`public/avatars/${g.id}.webp`)).toBe(true);
+    expect(normalizeAvatar({ kind: 'galeria', id: 'a05', url: 'http://x' })).toEqual({ kind: 'galeria', id: 'a05' });
+    expect(normalizeAvatar({ kind: 'galeria', id: '../../x' })).toEqual({ kind: 'galeria', id: 'a01' });
+  });
+  it('renderiza <img> circular com o arquivo certo', () => {
+    expect(svg({ kind: 'galeria', id: 'a12' })).toContain('/avatars/a12.webp');
+  });
+});

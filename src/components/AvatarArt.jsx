@@ -145,6 +145,9 @@ export function AvatarArt({ config, size = 48, fallback = '?', title }) {
       </span>
     );
   }
+  if (a.kind === 'galeria') {
+    return <img className="avatar-art" src={`/avatars/${a.id}.webp`} width={size} height={size} loading="lazy" decoding="async" alt={title ?? ''} aria-hidden={title ? undefined : true} style={{ objectFit: 'cover' }} />;
+  }
   if (a.kind === 'mascote') return <MascotArt config={a} size={size} title={title} />;
   return (
     <svg className="avatar-art" viewBox="0 0 120 120" width={size} height={size} role={title ? 'img' : undefined} aria-label={title} aria-hidden={title ? undefined : true}>

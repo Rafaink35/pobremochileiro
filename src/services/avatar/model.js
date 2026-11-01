@@ -61,6 +61,10 @@ export const MASCOT_EXPRESSIONS = [opt('smiling', 'Sorrindo'), opt('excited', 'A
 export const MASCOT_FIELDS = { backpackColor: BACKPACK_COLORS, hat: MASCOT_HATS, accessory: MASCOT_ACCESSORIES, expression: MASCOT_EXPRESSIONS };
 export const DEFAULT_MASCOT = { kind: 'mascote', backpackColor: 'forest-green', hat: 'none', accessory: 'none', expression: 'smiling' };
 
+// Galeria ilustrada: 24 retratos prontos (public/avatars/aNN.webp). O banco guarda só o ID ("a05").
+export const GALLERY = Array.from({ length: 24 }, (_, i) => opt(`a${String(i + 1).padStart(2, '0')}`, `Retrato ${i + 1}`));
+export const DEFAULT_GALLERY = { kind: 'galeria', id: 'a01' };
+
 export const PERSON_FIELDS = {
   skin: SKIN_TONES, body: BODIES, hair: HAIR_STYLES, hairColor: HAIR_COLORS, facial: FACIAL_HAIR, hat: HATS,
   glasses: GLASSES, shirt: SHIRTS, pin: PINS, mood: MOODS, bg: BACKGROUNDS,
@@ -77,6 +81,7 @@ export function normalizeAvatar(raw) {
   if (raw.kind === 'icon') {
     return { kind: 'icon', icon: ids(ICONS).includes(raw.icon) ? raw.icon : DEFAULT_ICON.icon, bg: ids(BACKGROUNDS).includes(raw.bg) ? raw.bg : DEFAULT_ICON.bg };
   }
+  if (raw.kind === 'galeria') return { kind: 'galeria', id: ids(GALLERY).includes(raw.id) ? raw.id : DEFAULT_GALLERY.id };
   if (raw.kind === 'mascote') {
     const out = { kind: 'mascote' };
     for (const [field, list] of Object.entries(MASCOT_FIELDS)) out[field] = ids(list).includes(raw[field]) ? raw[field] : DEFAULT_MASCOT[field];
@@ -107,5 +112,7 @@ export function randomMascot(random = Math.random) {
   for (const [field, list] of Object.entries(MASCOT_FIELDS)) out[field] = list[Math.floor(random() * list.length)].id;
   return out;
 }
+
+export const randomGallery = (random = Math.random) => ({ kind: 'galeria', id: GALLERY[Math.floor(random() * GALLERY.length)].id });
 
 export const find = (list, id) => list.find((o) => o.id === id) ?? list[0];

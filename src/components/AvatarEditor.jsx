@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AvatarArt } from './AvatarArt.jsx';
 import { MascotArt } from './MascotArt.jsx';
-import { BACKGROUNDS, DEFAULT_ICON, DEFAULT_MASCOT, DEFAULT_PERSON, ICONS, MASCOT_FIELDS, PERSON_FIELDS, normalizeAvatar, randomAvatar, randomMascot } from '../services/avatar/model.js';
+import { BACKGROUNDS, DEFAULT_GALLERY, DEFAULT_ICON, DEFAULT_MASCOT, GALLERY, DEFAULT_PERSON, ICONS, MASCOT_FIELDS, PERSON_FIELDS, normalizeAvatar, randomAvatar, randomGallery, randomMascot } from '../services/avatar/model.js';
 
 const FIELD_LABEL = {
   skin: 'Tom de pele', body: 'Corpo', hair: 'Cabelo', hairColor: 'Cor do cabelo', facial: 'Barba', hat: 'Chapéu ou lenço',
@@ -19,7 +19,7 @@ export function AvatarEditor({ value, onChange }) {
   const choose = (kind) => {
     setTab(kind);
     if (current.kind === kind) return onChange(current);
-    onChange({ person: { ...DEFAULT_PERSON }, icon: { ...DEFAULT_ICON }, mascote: { ...DEFAULT_MASCOT } }[kind]);
+    onChange({ person: { ...DEFAULT_PERSON }, icon: { ...DEFAULT_ICON }, mascote: { ...DEFAULT_MASCOT }, galeria: { ...DEFAULT_GALLERY } }[kind]);
   };
 
   return (
@@ -28,13 +28,24 @@ export function AvatarEditor({ value, onChange }) {
       <div className="avatar-editor-top">
         <AvatarArt config={current} size={120} title="Prévia do seu avatar" />
         <div className="plan-add" role="tablist" aria-label="Tipo de avatar">
+          <button type="button" role="tab" aria-selected={tab === 'galeria'} className={tab === 'galeria' ? 'btn-primary' : 'btn-outline'} onClick={() => choose('galeria')}>Retratos</button>
           <button type="button" role="tab" aria-selected={tab === 'mascote'} className={tab === 'mascote' ? 'btn-primary' : 'btn-outline'} onClick={() => choose('mascote')}>Mochila</button>
           <button type="button" role="tab" aria-selected={tab === 'person'} className={tab === 'person' ? 'btn-primary' : 'btn-outline'} onClick={() => choose('person')}>Personagem</button>
           <button type="button" role="tab" aria-selected={tab === 'icon'} className={tab === 'icon' ? 'btn-primary' : 'btn-outline'} onClick={() => choose('icon')}>Ícone</button>
+          {tab === 'galeria' && <button type="button" className="btn-outline" onClick={() => onChange(randomGallery())}>Sortear</button>}
           {tab === 'mascote' && <button type="button" className="btn-outline" onClick={() => onChange(randomMascot())}>Sortear</button>}
           {tab === 'person' && <button type="button" className="btn-outline" onClick={() => onChange(randomAvatar())}>Sortear</button>}
         </div>
       </div>
+      {tab === 'galeria' && current.kind === 'galeria' && (
+        <div className="gallery-grid" role="radiogroup" aria-label="Retratos">
+          {GALLERY.map((g) => (
+            <button key={g.id} type="button" role="radio" aria-checked={current.id === g.id} aria-label={g.label} className={'icon-choice' + (current.id === g.id ? ' on' : '')} onClick={() => onChange({ kind: 'galeria', id: g.id })}>
+              <AvatarArt config={{ kind: 'galeria', id: g.id }} size={64} />
+            </button>
+          ))}
+        </div>
+      )}
       {tab === 'mascote' && current.kind === 'mascote' && (
         <div className="mascot-fields">
           {Object.entries(MASCOT_FIELDS).map(([field, list]) => (

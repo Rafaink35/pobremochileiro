@@ -4,6 +4,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { CHAT_TOOL_DEFINITIONS, TOOL_DEFINITIONS, createToolbox } from '../../src/services/roteiro/tools.js';
 import { createDailyLimiter, verifyUser } from '../../src/services/roteiro/auth.js';
+import { DEFAULT_GEMINI_MODEL, runGemini } from '../../src/services/chat/gemini.js';
 import { extractUserNumbers, findUnverifiedAmounts } from '../../src/services/chat/amounts.js';
 
 const MAX_TURNS = 8;
@@ -32,6 +33,16 @@ const json = (status, body) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
 
 const limiter = createDailyLimiter();
+
+/** AI_PROVIDER=gemini|anthropic força a escolha; sem ele, usa o que tiver chave (Gemini primeiro, por ser o mais barato). */
+export function pickProvider(env) {
+  const wanted = (env.AI_PROVIDER || '').toLowerCase();
+  if (wanted === 'gemini') return env.GEMINI_API_KEY ? 'gemini' : null;
+  if (wanted === 'anthropic') return env.ANTHROPIC_API_KEY ? 'anthropic' : null;
+  if (env.GEMINI_API_KEY) return 'gemini';
+  if (env.ANTHROPIC_API_KEY) return 'anthropic';
+  return null;
+}
 
 function sanitizeHistory(raw) {
   const clean = (Array.isArray(raw) ? raw : [])
@@ -64,7 +75,8 @@ export function createChatHandler({
 } = {}) {
   return async function handler(request) {
     if (request.method !== 'POST') return json(405, { error: 'use POST' });
-    if (!env.ANTHROPIC_API_KEY) return json(503, { error: 'assistente ainda não configurado' });
+    const provider = pickProvider(env);
+    if (!provider) return json(503, { error: 'assistente ainda não configurado' });
     const userId = await verifyUser(request, env, fetchImpl).catch(() => null);
     if (!userId) return json(401, { error: 'entre na sua conta para usar o assistente' });
 
@@ -83,7 +95,7 @@ export function createChatHandler({
     const userNumbers = history.filter((m) => m.role === 'user').flatMap((m) => extractUserNumbers(m.content));
     const planNumber = Number(String(plan?.budget ?? '').replace(/\./g, '').replace(',', '.'));
     const toolbox = createToolbox({ env, fetchImpl, now, plan, extraAllowed: [...userNumbers, ...(Number.isFinite(planNumber) ? [planNumber] : [])] });
-    const model = env.CHAT_MODEL || DEFAULT_MODEL;
+    const model = provider === 'gemini' ? env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL : env.CHAT_MODEL || DEFAULT_MODEL;
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
@@ -94,9 +106,18 @@ export function createChatHandler({
         let spoken = '';
         let sentProposals = 0;
         try {
-          const client = makeClient();
           let finished = false;
-          for (let turn = 0; turn < MAX_TURNS && !finished; turn += 1) {
+          if (provider === 'gemini') {
+            const r = await runGemini({
+              env, fetchImpl, model, system: SYSTEM, history, definitions: [...TOOL_DEFINITIONS, ...CHAT_TOOL_DEFINITIONS],
+              toolbox, send, maxTurns: MAX_TURNS, maxTokens: MAX_TOKENS,
+            });
+            finished = r.finished;
+            usage.input += r.usage.input;
+            usage.output += r.usage.output;
+          }
+          const client = provider === 'anthropic' ? makeClient() : null;
+          for (let turn = 0; provider === 'anthropic' && turn < MAX_TURNS && !finished; turn += 1) {
             const s = client.messages.stream({
               model, max_tokens: MAX_TOKENS, system: SYSTEM, tools: [...TOOL_DEFINITIONS, ...CHAT_TOOL_DEFINITIONS], messages,
             });

@@ -28,6 +28,12 @@ services:
         sync: false
       - key: TRAVELPAYOUTS_TRS
         sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        sync: false
+      - key: AI_PROVIDER
+        sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: CHAT_MODEL

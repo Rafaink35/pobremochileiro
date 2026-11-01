@@ -37,3 +37,10 @@ JSON por linha): `tool` (o que a IA está consultando), `text` (trechos da respo
 - **Riscos ainda não validados:** streaming em funções da Netlify e o tempo máximo de execução (o padrão costuma ser curto
   e uma resposta com várias ferramentas pode demorar mais). Teste em produção; se cortar, é preciso outro tipo de
   hospedagem para essa rota. A verificação de texto livre é uma rede de segurança, não uma garantia.
+
+## Provedor do chat: Gemini ou Claude (01/11/2026)
+
+O chat escolhe o provedor pelas variáveis do servidor: `AI_PROVIDER=gemini|anthropic` força; sem ele, usa **Gemini** se
+`GEMINI_API_KEY` existir, senão Claude (`ANTHROPIC_API_KEY`). `GEMINI_MODEL` (padrão `gemini-2.5-flash`) troca o modelo.
+As mesmas ferramentas, a mesma verificação de valores e o mesmo limite diário valem nos dois. O Gemini responde por turno
+inteiro (sem streaming palavra a palavra). O `/api/roteiro` continua só com Claude.

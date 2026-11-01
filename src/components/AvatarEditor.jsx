@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { AvatarArt } from './AvatarArt.jsx';
-import { BACKGROUNDS, DEFAULT_ICON, DEFAULT_PERSON, ICONS, PERSON_FIELDS, normalizeAvatar, randomAvatar } from '../services/avatar/model.js';
+import { MascotArt } from './MascotArt.jsx';
+import { BACKGROUNDS, DEFAULT_ICON, DEFAULT_MASCOT, DEFAULT_PERSON, ICONS, MASCOT_FIELDS, PERSON_FIELDS, normalizeAvatar, randomAvatar, randomMascot } from '../services/avatar/model.js';
 
 const FIELD_LABEL = {
   skin: 'Tom de pele', body: 'Corpo', hair: 'Cabelo', hairColor: 'Cor do cabelo', facial: 'Barba', hat: 'Chapéu ou lenço',
   glasses: 'Óculos', shirt: 'Cor da camiseta', pin: 'Bandeira (opcional)', mood: 'Expressão', bg: 'Cor de fundo',
 };
+
+const MASCOT_LABEL = { backpackColor: 'Cor da mochila', hat: 'Chapéu', accessory: 'Acessório', expression: 'Expressão' };
 
 /** Escolha do avatar: personagem montável ou ícone pronto. `value` é a configuração; `onChange` recebe a nova. */
 export function AvatarEditor({ value, onChange }) {
@@ -15,20 +18,40 @@ export function AvatarEditor({ value, onChange }) {
 
   const choose = (kind) => {
     setTab(kind);
-    onChange(kind === 'person' ? (current.kind === 'person' ? current : { ...DEFAULT_PERSON }) : current.kind === 'icon' ? current : { ...DEFAULT_ICON });
+    if (current.kind === kind) return onChange(current);
+    onChange({ person: { ...DEFAULT_PERSON }, icon: { ...DEFAULT_ICON }, mascote: { ...DEFAULT_MASCOT } }[kind]);
   };
 
   return (
     <fieldset className="avatar-editor">
       <legend>Seu avatar</legend>
       <div className="avatar-editor-top">
-        <AvatarArt config={current} size={104} title="Prévia do seu avatar" />
+        <AvatarArt config={current} size={120} title="Prévia do seu avatar" />
         <div className="plan-add" role="tablist" aria-label="Tipo de avatar">
+          <button type="button" role="tab" aria-selected={tab === 'mascote'} className={tab === 'mascote' ? 'btn-primary' : 'btn-outline'} onClick={() => choose('mascote')}>Mochila</button>
           <button type="button" role="tab" aria-selected={tab === 'person'} className={tab === 'person' ? 'btn-primary' : 'btn-outline'} onClick={() => choose('person')}>Personagem</button>
           <button type="button" role="tab" aria-selected={tab === 'icon'} className={tab === 'icon' ? 'btn-primary' : 'btn-outline'} onClick={() => choose('icon')}>Ícone</button>
+          {tab === 'mascote' && <button type="button" className="btn-outline" onClick={() => onChange(randomMascot())}>Sortear</button>}
           {tab === 'person' && <button type="button" className="btn-outline" onClick={() => onChange(randomAvatar())}>Sortear</button>}
         </div>
       </div>
+      {tab === 'mascote' && current.kind === 'mascote' && (
+        <div className="mascot-fields">
+          {Object.entries(MASCOT_FIELDS).map(([field, list]) => (
+            <div key={field} role="radiogroup" aria-label={MASCOT_LABEL[field]}>
+              <b className="mascot-field-label">{MASCOT_LABEL[field]}</b>
+              <div className="mascot-options">
+                {list.map((o) => (
+                  <button key={o.id} type="button" role="radio" aria-checked={current[field] === o.id} aria-label={o.label} title={o.label}
+                    className={'icon-choice' + (current[field] === o.id ? ' on' : '')} onClick={() => onChange({ ...current, [field]: o.id })}>
+                    <MascotArt config={{ ...current, [field]: o.id }} size={52} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       {tab === 'person' && current.kind === 'person' && (
         <div className="avatar-fields">
           {Object.entries(PERSON_FIELDS).map(([field, list]) => (

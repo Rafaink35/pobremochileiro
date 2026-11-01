@@ -1,3 +1,4 @@
+import { MascotArt } from './MascotArt.jsx';
 import { BACKGROUNDS, HAIR_COLORS, PINS, SHIRTS, SKIN_TONES, find, normalizeAvatar } from '../services/avatar/model.js';
 
 // Arte dos avatares em SVG simples (formas básicas, no estilo do logo). Só IDs do catálogo são desenhados:
@@ -144,6 +145,7 @@ export function AvatarArt({ config, size = 48, fallback = '?', title }) {
       </span>
     );
   }
+  if (a.kind === 'mascote') return <MascotArt config={a} size={size} title={title} />;
   return (
     <svg className="avatar-art" viewBox="0 0 120 120" width={size} height={size} role={title ? 'img' : undefined} aria-label={title} aria-hidden={title ? undefined : true}>
       <defs><clipPath id={`clip-${size}`}><circle cx="60" cy="60" r="60" /></clipPath></defs>

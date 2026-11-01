@@ -72,3 +72,44 @@ describe('desenho', () => {
     expect(svg({ kind: 'person', skin: '<x>', hat: {} })).toContain('<svg');
   });
 });
+
+describe('mascote-mochila (kit SVG)', () => {
+  const MASCOT = { kind: 'mascote', backpackColor: 'coral', hat: 'cap', accessory: 'camera', expression: 'excited' };
+  it('guarda só os 4 IDs e descarta o resto', () => {
+    const n = normalizeAvatar({ ...MASCOT, svg: '<script>', backpackColor: 'rosa-choque' });
+    expect(Object.keys(n).sort()).toEqual(['accessory', 'backpackColor', 'expression', 'hat', 'kind']);
+    expect(n.backpackColor).toBe('forest-green');
+    expect(JSON.stringify(n)).not.toMatch(/<|svg|data:/i);
+  });
+  it('a escolha é persistida e recuperada igual (ida e volta pelo perfil)', async () => {
+    const { profilePayload, normalizeProfile } = await import('../../profile/model.js');
+    const row = profilePayload({ username: 'ana_m', displayName: 'Ana', avatarConfig: MASCOT });
+    expect(row.avatar_config).toEqual(MASCOT);
+    expect(JSON.stringify(row.avatar_config).length).toBeLessThan(600); // limite do check do banco
+    expect(normalizeProfile({ id: 'x', username: 'ana_m', avatar_config: JSON.parse(JSON.stringify(row.avatar_config)) }).avatarConfig).toEqual(MASCOT);
+  });
+  it('as 540 combinações são válidas e desenham todas as camadas alinhadas no mesmo viewBox', () => {
+    const html = svg(MASCOT);
+    expect(html).toContain('viewBox="-10 -9 276 276"');
+    expect(html).toContain('clip-path'); // círculo de foto de perfil
+    expect(html).toContain('#E8785D'); // cor da mochila/boné
+    expect(svg({ kind: 'mascote' })).toContain('<svg');
+  });
+  it('config de mascote também passa por isValidAvatar', () => expect(isValidAvatar(MASCOT)).toBe(true));
+});
+
+describe('todas as combinações do kit', () => {
+  it('renderizam sem erro e cada ID escolhe uma camada diferente', async () => {
+    const m = await import('../model.js');
+    let n = 0;
+    const seen = new Set();
+    for (const c of m.BACKPACK_COLORS) for (const h of m.MASCOT_HATS) for (const a of m.MASCOT_ACCESSORIES) for (const e of m.MASCOT_EXPRESSIONS) {
+      const out = svg({ kind: 'mascote', backpackColor: c.id, hat: h.id, accessory: a.id, expression: e.id });
+      expect(out).toContain('<svg');
+      seen.add(out.replace(/mc[a-zA-Z0-9]+/g, 'mc'));
+      n += 1;
+    }
+    expect(n).toBe(540);
+    expect(seen.size).toBe(540);
+  });
+});

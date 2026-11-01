@@ -46,6 +46,21 @@ export const ICONS = [
   opt('onibus', 'Ônibus'), opt('aviao', 'Avião'), opt('fogueira', 'Fogueira'), opt('mapa', 'Mapa'), opt('tenis', 'Tênis de trilha'), opt('violao', 'Violão'),
 ];
 
+// Mascote-mochila (kit SVG do projeto): só 4 IDs de escolha; as camadas SVG moram em MascotArt.jsx.
+export const BACKPACK_COLORS = [
+  opt('forest-green', 'Verde-floresta', { hex: '#0B3D2E' }), opt('sun-yellow', 'Amarelo-sol', { hex: '#F4C542' }), opt('coral', 'Coral', { hex: '#E8785D' }),
+  opt('sage-blue', 'Azul-sálvia', { hex: '#6F9EAA' }), opt('cream', 'Creme', { hex: '#F6F0E4' }),
+];
+export const MASCOT_HATS = [
+  opt('none', 'Sem chapéu'), opt('cap', 'Boné'), opt('beanie', 'Gorro'), opt('bandana', 'Bandana'), opt('helmet', 'Capacete'), opt('wide-brim-hat', 'Chapéu de aba'),
+];
+export const MASCOT_ACCESSORIES = [
+  opt('none', 'Sem acessório'), opt('glasses', 'Óculos'), opt('camera', 'Câmera'), opt('map', 'Mapa'), opt('bottle', 'Garrafa'), opt('ukulele', 'Ukulele'),
+];
+export const MASCOT_EXPRESSIONS = [opt('smiling', 'Sorrindo'), opt('excited', 'Animado'), opt('tired', 'Cansado')];
+export const MASCOT_FIELDS = { backpackColor: BACKPACK_COLORS, hat: MASCOT_HATS, accessory: MASCOT_ACCESSORIES, expression: MASCOT_EXPRESSIONS };
+export const DEFAULT_MASCOT = { kind: 'mascote', backpackColor: 'forest-green', hat: 'none', accessory: 'none', expression: 'smiling' };
+
 export const PERSON_FIELDS = {
   skin: SKIN_TONES, body: BODIES, hair: HAIR_STYLES, hairColor: HAIR_COLORS, facial: FACIAL_HAIR, hat: HATS,
   glasses: GLASSES, shirt: SHIRTS, pin: PINS, mood: MOODS, bg: BACKGROUNDS,
@@ -61,6 +76,11 @@ export function normalizeAvatar(raw) {
   if (!raw || typeof raw !== 'object') return null;
   if (raw.kind === 'icon') {
     return { kind: 'icon', icon: ids(ICONS).includes(raw.icon) ? raw.icon : DEFAULT_ICON.icon, bg: ids(BACKGROUNDS).includes(raw.bg) ? raw.bg : DEFAULT_ICON.bg };
+  }
+  if (raw.kind === 'mascote') {
+    const out = { kind: 'mascote' };
+    for (const [field, list] of Object.entries(MASCOT_FIELDS)) out[field] = ids(list).includes(raw[field]) ? raw[field] : DEFAULT_MASCOT[field];
+    return out;
   }
   if (raw.kind === 'person') {
     const out = { kind: 'person' };
@@ -79,6 +99,12 @@ export function randomAvatar(random = Math.random) {
   const pick = (list) => list[Math.floor(random() * list.length)].id;
   const out = { kind: 'person' };
   for (const [field, list] of Object.entries(PERSON_FIELDS)) out[field] = pick(list);
+  return out;
+}
+
+export function randomMascot(random = Math.random) {
+  const out = { kind: 'mascote' };
+  for (const [field, list] of Object.entries(MASCOT_FIELDS)) out[field] = list[Math.floor(random() * list.length)].id;
   return out;
 }
 

@@ -12,7 +12,7 @@ const MASCOT_LABEL = { backpackColor: 'Cor da mochila', hat: 'Chapéu', accessor
 
 /** Escolha do avatar: personagem montável ou ícone pronto. `value` é a configuração; `onChange` recebe a nova. */
 export function AvatarEditor({ value, onChange }) {
-  const current = normalizeAvatar(value) ?? { ...DEFAULT_PERSON };
+  const current = normalizeAvatar(value) ?? { ...DEFAULT_GALLERY };
   const [tab, setTab] = useState(current.kind);
   const set = (field) => (e) => onChange({ ...current, [field]: e.target.value });
 
@@ -29,8 +29,6 @@ export function AvatarEditor({ value, onChange }) {
         <AvatarArt config={current} size={120} title="Prévia do seu avatar" />
         <div className="plan-add" role="tablist" aria-label="Tipo de avatar">
           <button type="button" role="tab" aria-selected={tab === 'galeria'} className={tab === 'galeria' ? 'btn-primary' : 'btn-outline'} onClick={() => choose('galeria')}>Retratos</button>
-          <button type="button" role="tab" aria-selected={tab === 'mascote'} className={tab === 'mascote' ? 'btn-primary' : 'btn-outline'} onClick={() => choose('mascote')}>Mochila</button>
-          <button type="button" role="tab" aria-selected={tab === 'person'} className={tab === 'person' ? 'btn-primary' : 'btn-outline'} onClick={() => choose('person')}>Personagem</button>
           <button type="button" role="tab" aria-selected={tab === 'icon'} className={tab === 'icon' ? 'btn-primary' : 'btn-outline'} onClick={() => choose('icon')}>Ícone</button>
           {tab === 'galeria' && <button type="button" className="btn-outline" onClick={() => onChange(randomGallery())}>Sortear</button>}
           {tab === 'mascote' && <button type="button" className="btn-outline" onClick={() => onChange(randomMascot())}>Sortear</button>}

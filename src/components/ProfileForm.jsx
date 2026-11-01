@@ -3,13 +3,13 @@ import { MAX_STYLES, TRAVEL_STYLES, initials, suggestUsername, validateProfileFo
 
 import { AvatarArt } from './AvatarArt.jsx';
 import { AvatarEditor } from './AvatarEditor.jsx';
-import { DEFAULT_PERSON } from '../services/avatar/model.js';
+import { DEFAULT_GALLERY } from '../services/avatar/model.js';
 
 export function Avatar({ profile, size = 44 }) {
   return <AvatarArt config={profile?.avatarConfig} size={size} fallback={initials(profile)} />;
 }
 
-const EMPTY = { username: '', displayName: '', bio: '', homeCity: '', travelStyles: [], avatarColor: 'green', avatarConfig: { ...DEFAULT_PERSON }, isPublic: true };
+const EMPTY = { username: '', displayName: '', bio: '', homeCity: '', travelStyles: [], avatarColor: 'green', avatarConfig: { ...DEFAULT_GALLERY }, isPublic: true };
 
 /** Criar (mode="create", pede o nome de usuário) ou editar (mode="edit") o perfil. */
 export function ProfileForm({ mode = 'create', initial = null, onSubmit, onCancel }) {

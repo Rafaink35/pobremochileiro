@@ -184,6 +184,7 @@ export default function App() {
             onSaveDraft={() => notify('Rascunho salvo neste navegador.')}
             onSubmit={() => notify('Rascunho atualizado e salvo neste navegador.')}
             onNavigate={go}
+            notify={notify}
           />
         )}
 
@@ -195,7 +196,7 @@ export default function App() {
           />
         )}
 
-        {screen === 'Transporte' && <Transport onNavigate={go} />}
+        {screen === 'Transporte' && <Transport onNavigate={go} draft={draft} setDraft={setDraft} notify={notify} />}
 
         {screen === 'Perfil' && <Profile session={session} profileApi={profileApi} onNavigate={go} notify={notify} />}
 

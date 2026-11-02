@@ -7,6 +7,9 @@ import { buildRouteOptions, OPTION_KIND } from '../services/routes/routeOptions.
 import { CITIES, findCity } from '../data/airports.js';
 import { searchGroups, searchUrl } from '../data/searchSites.js';
 import { partners } from '../data/partners.js';
+import { parseBRL } from '../api/fx.js';
+import { addPlanItems, activePlanName } from '../services/planner/plans.js';
+import { addStay, buildStayEntry } from '../services/planner/stays.js';
 
 const brl = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const MODE_ICON = { plane: Plane, bus: Bus };
@@ -44,8 +47,9 @@ function GroundLinks({ option, origin, destination }) {
   );
 }
 
-function OptionRow({ option, origin, destination }) {
+function OptionRow({ option, origin, destination, onAdd, added }) {
   const isFlight = option.kind === OPTION_KIND.FLIGHT;
+  const [typed, setTyped] = useState('');
   const body = (
     <>
       <div className="route-main">
@@ -67,27 +71,57 @@ function OptionRow({ option, origin, destination }) {
         ) : (
           <small>preço indisponível</small>
         )}
-        {isFlight && <ArrowUpRight size={16} aria-hidden="true" />}
       </div>
     </>
   );
   if (isFlight) {
     return (
       <li className="route-option">
-        <a href={option.url} target="_blank" rel="noopener noreferrer sponsored" className="route-link">{body}</a>
+        <div className="route-link">{body}</div>
+        <div className="route-links">
+          <a className="btn-outline" href={option.url} target="_blank" rel="noopener noreferrer sponsored">Comprar no site <ArrowUpRight size={13} aria-hidden="true" /></a>
+          {onAdd && (
+            <button type="button" className="btn-primary" disabled={added} onClick={() => onAdd({ label: `${option.title} (${option.detail})`, amount: option.price.toFixed(2).replace('.', ','), url: option.url, source: 'Aviasales' })}>
+              {added ? 'No plano ✓' : 'Adicionar ao plano'}
+            </button>
+          )}
+        </div>
       </li>
     );
   }
+  const typedValue = parseBRL(typed);
   return (
     <li className="route-option">
       <div className="route-link">{body}</div>
       <GroundLinks option={option} origin={origin} destination={destination} />
+      {onAdd && (
+        <form className="route-links" onSubmit={(e) => { e.preventDefault(); if (Number.isFinite(typedValue)) { onAdd({ label: `${option.sameCountry ? 'Ônibus' : 'Trem/ônibus'} ${origin.city} → ${destination.city}`, amount: typedValue.toFixed(2).replace('.', ','), url: '', source: 'Informado por você' }); setTyped(''); } }}>
+          <label>
+            Achou o preço? Digite (R$, por pessoa)
+            <input inputMode="decimal" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Ex.: 120,00" />
+          </label>
+          <button type="submit" className="btn-primary" disabled={!Number.isFinite(typedValue) || typedValue <= 0}>Adicionar ao plano</button>
+        </form>
+      )}
     </li>
   );
 }
 
 /** "De A para B": voos com preço de fonte real, trecho terrestre com atalhos e hotéis do destino. */
-export function RouteExplorer({ onNavigate }) {
+export function RouteExplorer({ onNavigate, draft, setDraft, notify }) {
+  const canPlan = Boolean(draft && setDraft);
+  const [addedKeys, setAddedKeys] = useState(() => new Set());
+  const addRows = (key) => (rows) => {
+    setDraft((old) => addPlanItems(old, [rows].flat(), 'Transporte'));
+    setAddedKeys((old) => new Set([...old, key]));
+    notify?.(`Adicionado ao ${activePlanName(draft)}.`);
+  };
+  const addHotel = (h) => {
+    const { draft: next, added } = addStay(draft, buildStayEntry(h, h.kind === 'hostel' ? 'hostel' : 'hotel'));
+    if (added) setDraft(() => next);
+    notify?.(added ? `Adicionado ao ${activePlanName(draft)}.` : 'Esse local já está no plano.');
+  };
+  const hotelInPlan = (h) => (draft?.stays ?? []).some((st) => st.id === `${h.kind === 'hostel' ? 'hostel' : 'hotel'}:${h.id}`);
   const [form, setForm] = useState({ origin: '', destination: '', month: '', adults: '1' });
   const [state, setState] = useState({ status: 'idle', error: '', options: [], origin: null, destination: null, approximate: false });
   const [hotels, setHotels] = useState({ status: 'idle', records: [], message: '' });
@@ -158,7 +192,7 @@ export function RouteExplorer({ onNavigate }) {
           {state.approximate && <p role="status">Sem preço guardado para o mês exato; mostrando os mais baratos de datas próximas.</p>}
           {flightCount === 0 && !state.error && <p role="status">Nenhum preço de voo guardado para essa rota.</p>}
           <ul className="route-list">
-            {visible.map((o) => <OptionRow key={o.id} option={o} origin={origin} destination={destination} />)}
+            {visible.map((o) => <OptionRow key={o.id} option={o} origin={origin} destination={destination} onAdd={canPlan ? addRows(o.id) : null} added={addedKeys.has(o.id)} />)}
           </ul>
           {options.length > SHOW_FIRST && !showAll && (
             <button className="btn-outline route-more" onClick={() => setShowAll(true)}>Mostrar mais {options.length - SHOW_FIRST} {options.length - SHOW_FIRST === 1 ? 'opção' : 'opções'}</button>
@@ -179,6 +213,11 @@ export function RouteExplorer({ onNavigate }) {
                   <b>{h.name ?? 'Local sem nome'}</b>
                   <small>{KIND_NAME[h.kind] ?? 'Hospedagem'}{h.stars ? ` · ${h.stars}★` : ''}</small>
                   <small>preço não informado</small>
+                  {canPlan && (
+                    <button type="button" className="btn-outline" disabled={hotelInPlan(h)} onClick={() => addHotel(h)}>
+                      {hotelInPlan(h) ? 'No plano ✓' : 'Adicionar ao plano'}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

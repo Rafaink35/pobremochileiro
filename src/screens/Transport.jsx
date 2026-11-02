@@ -1,7 +1,7 @@
 import { RouteExplorer } from '../components/RouteExplorer.jsx';
 import { TransportSearch } from '../components/TransportSearch.jsx';
 
-export function Transport({ onNavigate }) {
+export function Transport({ onNavigate, draft, setDraft, notify }) {
   return (
     <section className="page-section">
       <div className="page-title-row">
@@ -16,7 +16,7 @@ export function Transport({ onNavigate }) {
           </p>
         </div>
       </div>
-      <RouteExplorer onNavigate={onNavigate} />
+      <RouteExplorer onNavigate={onNavigate} draft={draft} setDraft={setDraft} notify={notify} />
       <h2 className="route-subhead">Trechos de ônibus e trem por arquivo GTFS</h2>
       <TransportSearch />
       <p className="flights-note">

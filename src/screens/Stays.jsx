@@ -7,6 +7,7 @@ import { fetchApprovedOpportunities } from '../api/workExchange.js';
 import { addStay, buildStayEntry } from '../services/planner/stays.js';
 import { PlaceDetail } from '../components/PlaceDetail.jsx';
 import { hasBackend } from '../api/supabase.js';
+import { activePlanName } from '../services/planner/plans.js';
 import { partners } from '../data/partners.js';
 import { searchGroups, searchUrl } from '../data/searchSites.js';
 
@@ -62,7 +63,7 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
     const { draft: next, added } = addStay(draft, buildStayEntry(item, kind));
     if (added) {
       setDraft(() => next);
-      notify('Adicionado ao planejador.');
+      notify(`Adicionado ao ${activePlanName(draft)}.`);
     } else notify('Esse local já está no planejador.');
   };
   const inPlan = (kind, item) => (draft.stays ?? []).some((s) => s.id === `${kind}:${item.id}`);

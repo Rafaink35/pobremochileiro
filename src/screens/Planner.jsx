@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { planSummary } from '../services/planner/stays.js';
+import { addPlanItems, activePlanName, switchPlan } from '../services/planner/plans.js';
+import { PlanSwitcher } from '../components/PlanSwitcher.jsx';
+import { ComparePlans } from '../components/ComparePlans.jsx';
 import { FxCard } from '../components/FxCard.jsx';
 import { FlightsCard } from '../components/FlightsCard.jsx';
 import { TripPlan } from '../components/TripPlan.jsx';
@@ -30,24 +33,14 @@ const TABS = [
   ['terra', 'Ônibus e mais'],
   ['hospedagem', 'Hospedagem'],
   ['assistente', 'Assistente'],
+  ['comparar', 'Comparar planos'],
 ];
 
-export function Planner({ draft, setDraft, onSaveDraft, onSubmit, onNavigate }) {
+export function Planner({ draft, setDraft, onSaveDraft, onSubmit, onNavigate, notify }) {
   const [tab, setTab] = useState('plano');
   const { tripName, origin, days, budget } = draft;
 
-  const addItems = (rows, category = 'Transporte') =>
-    setDraft((old) => ({
-      ...old,
-      items: [
-        ...(old.items || []),
-        ...rows.map((r) => ({
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          category,
-          ...r,
-        })),
-      ],
-    }));
+  const addItems = (rows, category = 'Transporte') => setDraft((old) => addPlanItems(old, rows, category));
 
   const summary = planSummary(draft);
   const planCount = (draft.items?.length ?? 0) + (draft.stays?.length ?? 0);
@@ -77,6 +70,8 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit, onNavigate }) 
         </div>
       </div>
 
+      <PlanSwitcher draft={draft} setDraft={setDraft} notify={notify} />
+
       <div className="planner-tabs" role="tablist" aria-label="Partes do planejador">
         {TABS.map(([id, label]) => (
           <button key={id} type="button" role="tab" id={`tab-${id}`} aria-selected={tab === id} aria-controls={`panel-${id}`}
@@ -87,7 +82,7 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit, onNavigate }) 
       </div>
       {tab !== 'plano' && (
         <p className="plan-bar" role="status">
-          <b>Meu plano:</b> {planCount} {planCount === 1 ? 'item' : 'itens'} · total parcial {money(summary.knownTotal)}
+          <b>{activePlanName(draft)}:</b> {planCount} {planCount === 1 ? 'item' : 'itens'} · total parcial {money(summary.knownTotal)}
           <button type="button" className="back-link" onClick={() => setTab('plano')}>Ver plano →</button>
         </p>
       )}
@@ -186,6 +181,11 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit, onNavigate }) 
           <h2>Hotéis, hostels, campings e trabalho em troca</h2>
           <p>Procure na tela de Hospedagem e use <b>"Adicionar ao planejador"</b> no detalhe de cada local. Eles voltam para o seu plano.</p>
           <button type="button" className="btn-primary" onClick={() => onNavigate?.('Hospedagem')}>Abrir Hospedagem</button>
+        </div>
+      )}
+      {tab === 'comparar' && (
+        <div role="tabpanel" id="panel-comparar" aria-labelledby="tab-comparar">
+          <ComparePlans draft={draft} onPick={(id) => { setDraft((d) => switchPlan(d, id)); setTab('plano'); }} />
         </div>
       )}
       {tab === 'assistente' && <div role="tabpanel" id="panel-assistente" aria-labelledby="tab-assistente"><ChatAgent draft={draft} onUseInPlan={addItems} /></div>}

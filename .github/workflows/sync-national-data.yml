@@ -1,0 +1,45 @@
+# Sincronização da camada nacional de dados. Roda fora do app, na infraestrutura do GitHub.
+# Segredos necessários (Settings > Secrets and variables > Actions): SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.
+# A chave de serviço fica SÓ aqui: nunca no código, no navegador, no Render nem no chat.
+name: Sincronizar dados nacionais
+
+on:
+  schedule:
+    - cron: '17 5 * * 1' # segundas, 05:17 UTC
+  workflow_dispatch:
+    inputs:
+      uf:
+        description: 'UFs do OSM separadas por vírgula (ex.: SC,PR). Vazio = região Sul'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Só testar, sem gravar'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  osm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Sincronizar OpenStreetMap
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OVERPASS_CONTACT: ${{ vars.OVERPASS_CONTACT }}
+        run: |
+          UF="${{ inputs.uf }}"
+          DRY="${{ inputs.dry_run }}"
+          ARGS=""
+          if [ -n "$UF" ]; then ARGS="--uf $UF"; else ARGS="--region Sul"; fi
+          if [ "$DRY" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          node scripts/sync.mjs osm $ARGS

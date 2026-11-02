@@ -60,6 +60,8 @@ describe('calendário e tarifas', () => {
     expect(serviceActive(dataset, 'WK', '2026-11-04')).toBe(false); // exceção: removido
     expect(serviceActive(dataset, 'WK', '2026-11-07')).toBe(true); // sábado adicionado
     expect(serviceActive(dataset, 'WK', '2026-11-08')).toBe(false); // domingo
+    expect(serviceActive(dataset, 'WK', '2027-01-05')).toBe(false); // terça, mas depois do fim do período (20261231)
+    expect(serviceActive(dataset, 'WK', '2025-12-30')).toBe(false); // terça, mas antes do início (20260101)
   });
   it('sem fare_attributes o preço é null, não zero', () => {
     const { dataset } = importGtfsZip(makeZip(), META);

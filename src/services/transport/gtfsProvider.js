@@ -70,7 +70,8 @@ export function serviceActive(dataset, serviceId, date) {
   if (exception === '1') return true;
   if (exception === '2') return false;
   const cal = dataset.calendar.get(serviceId);
-  if (!cal || day < cal.start || day > cal.end) return false;
+  // GTFS usa start_date/end_date (AAAAMMDD). Serviço fora do período não opera, mesmo que o dia da semana bata.
+  if (!cal || day < (cal.start_date ?? cal.start) || day > (cal.end_date ?? cal.end)) return false;
   const d = new Date(`${day.slice(0, 4)}-${day.slice(4, 6)}-${day.slice(6, 8)}T00:00:00Z`);
   const key = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][d.getUTCDay()];
   return cal[key] === '1';

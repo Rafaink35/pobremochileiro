@@ -81,7 +81,7 @@ export function addPlanItems(d, rows, category = 'Transporte') {
     ...d,
     items: [
       ...(d.items ?? []),
-      ...[rows].flat().map((r) => ({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, category, ...r })),
+      ...[rows].flat().map((r) => ({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, category, ...r, partner: r.partner ?? r.source ?? '', carrier: r.carrier ?? '' })),
     ],
   };
 }

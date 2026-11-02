@@ -14,6 +14,7 @@ export function buildRouteOptions({ origin, destination, flights = [], maxFlight
       id: `flight:${f.link}`,
       kind: OPTION_KIND.FLIGHT,
       title: `Voo ${origin.iata} → ${destination.iata}`,
+      airline: f.airline ?? null,
       modes: ['plane'],
       price: f.total,
       perPerson: f.passengers > 1 ? f.price : null,

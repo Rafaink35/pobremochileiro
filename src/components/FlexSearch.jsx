@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { airlineName } from '../data/airlines.js';
 import { CalendarSearch } from 'lucide-react';
 import { fetchFlex } from '../api/flights.js';
 
@@ -46,6 +47,8 @@ export function FlexSearch({ onUseInPlan }) {
         amount: d.total.toFixed(2).replace('.', ','),
         url: d.link,
         source: 'Aviasales',
+        partner: 'Aviasales',
+        carrier: airlineName(d.airline),
       },
     ]);
     setAdded(d.day);

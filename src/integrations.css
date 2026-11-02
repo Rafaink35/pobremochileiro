@@ -226,3 +226,8 @@ a.route-link:hover { background: #f6f0e4; border-radius: 12px; }
 .compare-table th, .compare-table td { border: 1px solid var(--line, #e6dece); padding: 8px 10px; text-align: left; vertical-align: top; }
 .compare-table thead th { background: #f6f0e4; }
 .compare-table th.best { background: #d9efe0; }
+.plan-meta { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.plan-meta label { display: flex; flex-direction: column; gap: 3px; font-size: 0.72rem; font-weight: 700; color: #4d6357; }
+.plan-booking { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 0.85rem; }
+.plan-booking a { color: #b94e32; font-weight: 700; }
+@media (max-width: 600px) { .plan-meta { grid-template-columns: 1fr; } }

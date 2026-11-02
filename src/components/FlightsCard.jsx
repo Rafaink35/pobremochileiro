@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plane } from 'lucide-react';
 import { fetchCalendar, fetchFlights } from '../api/flights.js';
+import { airlineName } from '../data/airlines.js';
 
 const brl = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString('pt-BR') : '—');
@@ -58,6 +59,8 @@ export function FlightsCard({ onUseInPlan }) {
       amount: f.total.toFixed(2).replace('.', ','),
       url: f.link,
       source: 'Aviasales',
+      partner: 'Aviasales',
+      carrier: airlineName(f.airline),
     }]);
     setAdded((old) => new Set([...old, f.link]));
   };

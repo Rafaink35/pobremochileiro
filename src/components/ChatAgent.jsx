@@ -65,7 +65,7 @@ export function ChatAgent({ draft, onUseInPlan }) {
     const usable = items.filter((it) => it.verified && it.amount !== null && !addedIds.has(it.id + it.label));
     if (!usable.length) return;
     onUseInPlan(
-      usable.map((it) => ({ category: it.category, label: it.label, amount: it.amount.toFixed(2).replace('.', ','), url: it.url ?? '', source: it.sourceName ?? 'fonte' })),
+      usable.map((it) => ({ category: it.category, label: it.label, amount: it.amount.toFixed(2).replace('.', ','), url: it.url ?? '', source: it.sourceName ?? 'fonte', partner: it.sourceName ?? '' })),
     );
     setAddedIds((old) => new Set([...old, ...usable.map((it) => it.id + it.label)]));
   };

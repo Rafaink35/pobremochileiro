@@ -8,7 +8,7 @@ const LABELS = { origem: 'Saindo de', destino: 'Indo para', data: 'Data (opciona
 export function MoreSearch({ onUseInPlan }) {
   const [groupId, setGroupId] = useState('bus');
   const [values, setValues] = useState({});
-  const [save, setSave] = useState({ site: '', amount: '', url: '' });
+  const [save, setSave] = useState({ site: '', carrier: '', amount: '', url: '' });
   const [saveMsg, setSaveMsg] = useState('');
   const setS = (k) => (e) => setSave((v) => ({ ...v, [k]: e.target.value }));
   const group = searchGroups.find((g) => g.id === groupId);
@@ -36,10 +36,10 @@ export function MoreSearch({ onUseInPlan }) {
       .filter(Boolean)
       .join(': ');
     onUseInPlan?.(
-      [{ label, amount: amount.toFixed(2).replace('.', ','), url, source: save.site.trim() || 'site' }],
+      [{ label, amount: amount.toFixed(2).replace('.', ','), url, source: save.site.trim() || 'site', partner: save.site.trim() || 'site', carrier: save.carrier.trim().slice(0, 60) }],
       CATEGORY[group.id],
     );
-    setSave({ site: '', amount: '', url: '' });
+    setSave({ site: '', carrier: '', amount: '', url: '' });
     setSaveMsg('Adicionado ao plano ✓');
   };
 
@@ -86,6 +86,10 @@ export function MoreSearch({ onUseInPlan }) {
         <label>
           Site onde achou
           <input value={save.site} onChange={setS('site')} placeholder="Ex.: Buser" />
+        </label>
+        <label>
+          Empresa (ônibus, hospedagem…)
+          <input value={save.carrier} onChange={setS('carrier')} placeholder="Ex.: Cometa" maxLength={60} />
         </label>
         <label>
           Valor (R$)

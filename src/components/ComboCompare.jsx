@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Route } from 'lucide-react';
 import { fetchFlights } from '../api/flights.js';
 import { parseBRL } from '../api/fx.js';
+import { airlineName } from '../data/airlines.js';
 
 const brl = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const IATA = /^[A-Za-z]{3}$/;
@@ -61,6 +62,8 @@ export function ComboCompare({ onUseInPlan }) {
         amount: money(result.direct.total),
         url: result.direct.link,
         source: 'Aviasales',
+        partner: 'Aviasales',
+        carrier: airlineName(result.direct.airline),
       },
     ]);
     setAdded('direct');
@@ -74,6 +77,8 @@ export function ComboCompare({ onUseInPlan }) {
         amount: money(result.combo.total - result.combo.ground),
         url: result.combo.link,
         source: 'Aviasales',
+        partner: 'Aviasales',
+        carrier: airlineName(result.combo.airline),
       },
     ]);
     setAdded('combo');

@@ -8,6 +8,7 @@ import { CITIES, findCity } from '../data/airports.js';
 import { searchGroups, searchUrl } from '../data/searchSites.js';
 import { partners } from '../data/partners.js';
 import { parseBRL } from '../api/fx.js';
+import { airlineName } from '../data/airlines.js';
 import { addPlanItems, activePlanName } from '../services/planner/plans.js';
 import { addStay, buildStayEntry } from '../services/planner/stays.js';
 
@@ -50,6 +51,8 @@ function GroundLinks({ option, origin, destination }) {
 function OptionRow({ option, origin, destination, onAdd, added }) {
   const isFlight = option.kind === OPTION_KIND.FLIGHT;
   const [typed, setTyped] = useState('');
+  const [company, setCompany] = useState('');
+  const [site, setSite] = useState('');
   const body = (
     <>
       <div className="route-main">
@@ -81,7 +84,7 @@ function OptionRow({ option, origin, destination, onAdd, added }) {
         <div className="route-links">
           <a className="btn-outline" href={option.url} target="_blank" rel="noopener noreferrer sponsored">Comprar no site <ArrowUpRight size={13} aria-hidden="true" /></a>
           {onAdd && (
-            <button type="button" className="btn-primary" disabled={added} onClick={() => onAdd({ label: `${option.title} (${option.detail})`, amount: option.price.toFixed(2).replace('.', ','), url: option.url, source: 'Aviasales' })}>
+            <button type="button" className="btn-primary" disabled={added} onClick={() => onAdd({ label: `${option.title} (${option.detail})`, amount: option.price.toFixed(2).replace('.', ','), url: option.url, source: 'Aviasales', partner: 'Aviasales', carrier: airlineName(option.airline) })}>
               {added ? 'No plano ✓' : 'Adicionar ao plano'}
             </button>
           )}
@@ -95,7 +98,15 @@ function OptionRow({ option, origin, destination, onAdd, added }) {
       <div className="route-link">{body}</div>
       <GroundLinks option={option} origin={origin} destination={destination} />
       {onAdd && (
-        <form className="route-links" onSubmit={(e) => { e.preventDefault(); if (Number.isFinite(typedValue)) { onAdd({ label: `${option.sameCountry ? 'Ônibus' : 'Trem/ônibus'} ${origin.city} → ${destination.city}`, amount: typedValue.toFixed(2).replace('.', ','), url: '', source: 'Informado por você' }); setTyped(''); } }}>
+        <form className="route-links" onSubmit={(e) => { e.preventDefault(); if (Number.isFinite(typedValue)) { onAdd({ label: `${option.sameCountry ? 'Ônibus' : 'Trem/ônibus'} ${origin.city} → ${destination.city}`, amount: typedValue.toFixed(2).replace('.', ','), url: '', source: site.trim() || 'Informado por você', partner: site.trim() || 'Informado por você', carrier: company.trim().slice(0, 60) }); setTyped(''); } }}>
+          <label>
+            Empresa (ex.: Cometa)
+            <input value={company} onChange={(e) => setCompany(e.target.value)} maxLength={60} />
+          </label>
+          <label>
+            Site onde viu (ex.: Buser)
+            <input value={site} onChange={(e) => setSite(e.target.value)} maxLength={40} />
+          </label>
           <label>
             Achou o preço? Digite (R$, por pessoa)
             <input inputMode="decimal" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Ex.: 120,00" />

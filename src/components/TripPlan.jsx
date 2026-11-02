@@ -1,6 +1,7 @@
 import { ArrowUpRight, Plus, Trash2 } from 'lucide-react';
 import { parseBRL } from '../api/fx.js';
 import { partners } from '../data/partners.js';
+import { searchGroups, searchUrl } from '../data/searchSites.js';
 import { COST_STATUS, planSummary, removeStay, TRANSPORT_STATUS, updateStay } from '../services/planner/stays.js';
 
 export const PLAN_CATEGORIES = ['Transporte', 'Hospedagem', 'Comida', 'Passeios', 'Extras'];
@@ -42,7 +43,9 @@ export function TripPlan({ draft, setDraft }) {
       <ul className="plan-list">
         {items.map((it) => {
           const source = it.url && it.url.startsWith('https://') ? { url: it.url, name: it.source || 'site' } : null;
-          const link = source || reserveLink(it.category);
+          // Sem link da oferta: se o parceiro informado é um site conhecido (Buser, ClickBus...), oferece a pesquisa nele.
+          const known = (it.partner || it.source) && searchGroups.flatMap((g) => g.sites).find((x) => x.name.toLowerCase() === String(it.partner || it.source).trim().toLowerCase());
+          const link = source || (known ? { url: searchUrl(known.domain, `${it.label} ${it.carrier ?? ''}`.trim()), name: known.name, search: true } : null) || reserveLink(it.category);
           return (
             <li key={it.id} className="plan-item">
               <span className="plan-cat">{it.category}</span>
@@ -61,12 +64,22 @@ export function TripPlan({ draft, setDraft }) {
               />
               {link && (
                 <a href={link.url} target="_blank" rel="noopener noreferrer sponsored" className="plan-reserve">
-                  {source ? `Comprar no ${source.name}` : 'Reservar'} <ArrowUpRight size={13} aria-hidden="true" />
+                  {source ? `Comprar no ${source.name}` : link.search ? `Ver no ${link.name}` : 'Reservar'} <ArrowUpRight size={13} aria-hidden="true" />
                 </a>
               )}
               <button type="button" onClick={() => remove(it.id)} aria-label="Remover item" className="plan-remove">
                 <Trash2 size={15} aria-hidden="true" />
               </button>
+              <div className="plan-meta">
+                <label>
+                  {it.category === 'Transporte' ? 'Companhia (aérea ou terrestre)' : 'Empresa ou local'}
+                  <input value={it.carrier ?? ''} onChange={(e) => update(it.id, 'carrier', e.target.value.slice(0, 60))} placeholder={it.category === 'Transporte' ? 'Ex.: LATAM, Cometa' : 'Ex.: Camping do Zé'} />
+                </label>
+                <label>
+                  Parceiro / site da compra
+                  <input value={it.partner ?? it.source ?? ''} onChange={(e) => update(it.id, 'partner', e.target.value.slice(0, 40))} placeholder="Ex.: Aviasales, Buser" />
+                </label>
+              </div>
             </li>
           );
         })}
@@ -79,7 +92,11 @@ export function TripPlan({ draft, setDraft }) {
             {stays.map((st) => (
               <li key={st.id} className="plan-stay">
                 <b>{st.name}</b>
-                <span>{{ work_exchange: 'Trabalho em troca', hotel: 'Hotel', hostel: 'Hostel' }[st.kind] ?? 'Camping'}</span>
+                <span>
+                  {{ work_exchange: 'Trabalho em troca', hotel: 'Hotel', hostel: 'Hostel' }[st.kind] ?? 'Camping'}
+                  {[st.city, st.state].filter(Boolean).length ? ` · ${[st.city, st.state].filter(Boolean).join(' / ')}` : ''}
+                </span>
+                <StayBooking st={st} />
                 <span>{costLabel(st.cost)}</span>
                 <span>
                   {st.transport.status === TRANSPORT_STATUS.CONFIRMED
@@ -126,6 +143,23 @@ export function TripPlan({ draft, setDraft }) {
 
       <PlanTotal summary={summary} total={total} />
     </section>
+  );
+}
+
+/** Onde reservar: site do próprio local e pesquisa nos parceiros de hospedagem. Sem preço inventado. */
+function StayBooking({ st }) {
+  const query = `${st.name} ${st.city ?? ''}`.trim();
+  const sites = st.kind === 'hotel' ? [['Booking.com', 'booking.com']] : st.kind === 'hostel' ? [['Hostelworld', 'hostelworld.com'], ['Booking.com', 'booking.com']] : [];
+  const website = st.contact?.website && /^https?:\/\//i.test(st.contact.website) ? st.contact.website : null;
+  if (!website && sites.length === 0) return null;
+  return (
+    <span className="plan-booking">
+      Onde reservar:{' '}
+      {website && <a href={website} target="_blank" rel="noopener noreferrer">site do local</a>}
+      {sites.map(([name, domain]) => (
+        <a key={domain} href={searchUrl(domain, query)} target="_blank" rel="noopener noreferrer">{name}</a>
+      ))}
+    </span>
   );
 }
 

@@ -92,3 +92,12 @@ describe('comparação de planos', () => {
     expect(comparePlans(d).rows.find((r) => r.id === 'p2').empty).toBe(true);
   });
 });
+
+describe('companhia e parceiro nos itens', () => {
+  it('guarda companhia e parceiro; parceiro cai para a fonte quando não vem', () => {
+    const d = addPlanItems(base(), [{ label: 'Voo', amount: '1,00', source: 'Aviasales', carrier: 'TAP Air Portugal (TP)' }, { label: 'Ônibus', amount: '2,00', source: 'Buser', partner: 'Buser', carrier: 'Cometa' }]);
+    expect(d.items.at(-2)).toMatchObject({ partner: 'Aviasales', carrier: 'TAP Air Portugal (TP)' });
+    expect(d.items.at(-1)).toMatchObject({ partner: 'Buser', carrier: 'Cometa' });
+    expect(addPlanItems(base(), [{ label: 'X' }]).items.at(-1)).toMatchObject({ partner: '', carrier: '' });
+  });
+});

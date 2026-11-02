@@ -35,7 +35,37 @@ export function toGeminiTools(definitions) {
   ];
 }
 
+let resolvedModel = null; // modelo achado automaticamente depois de um 404 (vale até o servidor reiniciar)
+
+/** Pede à API a lista de modelos e escolhe o Flash estável mais novo que sabe responder (sem lite, imagem, áudio ou preview). */
+export async function pickFlashModel({ env, fetchImpl }) {
+  const res = await fetchImpl(`${ENDPOINT}?pageSize=200`, { headers: { 'x-goog-api-key': env.GEMINI_API_KEY } });
+  if (!res.ok) return null;
+  const { models } = await res.json();
+  const score = (name) => {
+    const m = /gemini-(\d+(?:\.\d+)?)-flash/.exec(name);
+    return m ? parseFloat(m[1]) : -1;
+  };
+  const ok = (models ?? [])
+    .filter((m) => (m.supportedGenerationMethods ?? []).includes('generateContent'))
+    .map((m) => String(m.name).replace(/^models\//, ''))
+    .filter((n) => /^gemini-\d+(\.\d+)?-flash(-\d+)?$/.test(n) && !/lite|image|tts|live|audio|preview|exp/.test(n));
+  ok.sort((a, b) => score(b) - score(a));
+  return ok[0] ?? null;
+}
+
+async function googleErrorText(res) {
+  try {
+    const body = await res.json();
+    return String(body?.error?.message ?? '').replace(/AIza[\w-]+/g, '[chave]').slice(0, 160);
+  } catch {
+    return '';
+  }
+}
+
 const toContents = (history) => history.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
+
+export const _resetResolvedModel = () => { resolvedModel = null; };
 
 export function geminiErrorMessage(status) {
   if (status === 429) return 'o limite do Gemini foi atingido agora; tente de novo em alguns minutos';
@@ -53,8 +83,8 @@ export async function runGemini({ env, fetchImpl, model, system, history, defini
   let sentProposals = 0;
   let finished = false;
 
-  for (let turn = 0; turn < maxTurns && !finished; turn += 1) {
-    const res = await fetchImpl(`${ENDPOINT}/${encodeURIComponent(model)}:generateContent`, {
+  const call = (name) =>
+    fetchImpl(`${ENDPOINT}/${encodeURIComponent(name)}:generateContent`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
       body: JSON.stringify({
@@ -64,8 +94,22 @@ export async function runGemini({ env, fetchImpl, model, system, history, defini
         generationConfig: { maxOutputTokens: maxTokens },
       }),
     });
+  let active = resolvedModel ?? model;
+
+  for (let turn = 0; turn < maxTurns && !finished; turn += 1) {
+    let res = await call(active);
+    if (res.status === 404 && !resolvedModel) {
+      // Nome de modelo que não existe (mais): descobre um Flash válido e tenta uma vez.
+      const found = await pickFlashModel({ env, fetchImpl }).catch(() => null);
+      if (found && found !== active) {
+        resolvedModel = found;
+        active = found;
+        res = await call(active);
+      }
+    }
     if (!res.ok) {
-      send({ type: 'error', message: geminiErrorMessage(res.status), detail: `gemini ${res.status}` });
+      const why = await googleErrorText(res);
+      send({ type: 'error', message: geminiErrorMessage(res.status), detail: `gemini ${res.status}${why ? `: ${why}` : ''} · modelo ${active}` });
       return { finished: true, spoken, usage };
     }
     const data = await res.json();

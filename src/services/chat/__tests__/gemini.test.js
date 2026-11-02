@@ -88,3 +88,47 @@ describe('chat com Gemini', () => {
     expect(ev.find((e) => e.type === 'error').message).toMatch(/limite do Gemini/);
   });
 });
+
+describe('modelo inexistente (404) acha um Flash válido sozinho', () => {
+  const env = { GEMINI_API_KEY: 'g-key', GEMINI_MODEL: 'modelo-que-nao-existe', SUPABASE_URL: 'https://s.example', SUPABASE_ANON_KEY: 'a', CHAT_DAILY_LIMIT: '50' };
+  const req = () => new Request('http://x/api/chat', { method: 'POST', headers: { authorization: 'Bearer tok', 'content-type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: 'oi' }] }) });
+  const models = [
+    { name: 'models/gemini-2.0-flash', supportedGenerationMethods: ['generateContent'] },
+    { name: 'models/gemini-3.5-flash', supportedGenerationMethods: ['generateContent'] },
+    { name: 'models/gemini-3.5-flash-lite', supportedGenerationMethods: ['generateContent'] },
+    { name: 'models/gemini-3.9-flash-preview', supportedGenerationMethods: ['generateContent'] },
+    { name: 'models/gemini-3.5-flash-image', supportedGenerationMethods: ['generateContent'] },
+    { name: 'models/text-embedding-004', supportedGenerationMethods: ['embedContent'] },
+  ];
+  it('escolhe o Flash estável mais novo e responde', async () => {
+    const { _resetResolvedModel } = await import('../gemini.js');
+    _resetResolvedModel();
+    const used = [];
+    const fetchImpl = async (url, opts) => {
+      const u = String(url);
+      if (u.includes('/auth/v1/user')) return { ok: true, json: async () => ({ id: `u-${Math.random()}` }) };
+      if (u.includes('?pageSize')) return { ok: true, json: async () => ({ models }) };
+      used.push(u);
+      if (u.includes('modelo-que-nao-existe')) return { ok: false, status: 404, json: async () => ({ error: { message: 'models/modelo-que-nao-existe is not found' } }) };
+      return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'Fala, mochileiro!' }] }, finishReason: 'STOP' }] }) };
+    };
+    const ev = (await (await createChatHandler({ env, fetchImpl })(req())).text()).trim().split('\n').map((l) => JSON.parse(l));
+    expect(ev.find((e) => e.type === 'text').delta).toBe('Fala, mochileiro!');
+    expect(used.at(-1)).toContain('gemini-3.5-flash:generateContent');
+    _resetResolvedModel();
+  });
+  it('sem modelo válido, mostra o motivo do Google e o nome tentado', async () => {
+    const { _resetResolvedModel } = await import('../gemini.js');
+    _resetResolvedModel();
+    const fetchImpl = async (url) => {
+      const u = String(url);
+      if (u.includes('/auth/v1/user')) return { ok: true, json: async () => ({ id: `u-${Math.random()}` }) };
+      if (u.includes('?pageSize')) return { ok: true, json: async () => ({ models: [] }) };
+      return { ok: false, status: 404, json: async () => ({ error: { message: 'models/x is not found AIzaSyABC123' } }) };
+    };
+    const ev = (await (await createChatHandler({ env, fetchImpl })(req())).text()).trim().split('\n').map((l) => JSON.parse(l));
+    const err = ev.find((e) => e.type === 'error');
+    expect(err.detail).toMatch(/gemini 404: models\/x is not found \[chave\] · modelo modelo-que-nao-existe/);
+    expect(JSON.stringify(ev)).not.toContain('AIza');
+  });
+});

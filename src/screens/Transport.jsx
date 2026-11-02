@@ -1,4 +1,5 @@
 import { RouteExplorer } from '../components/RouteExplorer.jsx';
+import { BrazilFeeds } from '../components/BrazilFeeds.jsx';
 import { TransportSearch } from '../components/TransportSearch.jsx';
 
 export function Transport({ onNavigate, draft, setDraft, notify }) {
@@ -18,6 +19,7 @@ export function Transport({ onNavigate, draft, setDraft, notify }) {
       </div>
       <RouteExplorer onNavigate={onNavigate} draft={draft} setDraft={setDraft} notify={notify} />
       <h2 className="route-subhead">Trechos de ônibus e trem por arquivo GTFS</h2>
+      <BrazilFeeds />
       <TransportSearch />
       <p className="flights-note">
         <button className="back-link" onClick={() => onNavigate('Fontes')}>

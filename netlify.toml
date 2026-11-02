@@ -27,3 +27,8 @@
   from = "/api/chat"
   to = "/.netlify/functions/chat"
   status = 200
+
+[[redirects]]
+  from = "/api/gtfs"
+  to = "/.netlify/functions/gtfs"
+  status = 200

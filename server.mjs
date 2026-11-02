@@ -25,6 +25,7 @@ export const API_ROUTES = {
   '/api/flex': './netlify/functions/flex.mjs',
   '/api/roteiro': './netlify/functions/roteiro.mjs',
   '/api/chat': './netlify/functions/chat.mjs',
+  '/api/gtfs': './netlify/functions/gtfs.mjs',
 };
 
 async function readBody(req) {

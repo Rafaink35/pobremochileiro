@@ -30,3 +30,19 @@ Legenda de estado: **Preparada** = interface pronta, sem fonte validada · **Inv
   "revisar antes de publicar" e **não** aplica uma interpretação jurídica genérica.
 - Os dados desta tabela vivem em `src/services/transport/sourceMetadata.js` (`INVESTIGATED_SOURCES`) e aparecem na tela
   **Fontes de dados**. Atualize os dois juntos.
+
+## Feeds brasileiros (Rio, SPTrans, ANTT)
+
+A tela **Transporte** tem botões para carregar os três feeds. O navegador chama `/api/gtfs?feed=rio|sptrans|antt`
+(`netlify/functions/gtfs.mjs`), que baixa o ZIP da URL configurada **no servidor** e o devolve; o app importa com o
+provedor GTFS existente. Sem a variável, o feed responde 503 e a tela diz "não configurada": nenhum dado de exemplo.
+
+| Feed | Variável | Observação |
+|---|---|---|
+| Rio (SMTR / data.rio) | `GTFS_RIO_URL` | Confirmar URL atual e licença no portal. |
+| SPTrans | `GTFS_SPTRANS_URL` | O download oficial exige cadastro: hospede o ZIP autorizado. |
+| ANTT | `GTFS_ANTT_URL` | Não está confirmado que a ANTT publique GTFS; é preciso converter os horários. |
+
+Pendências: nenhum feed foi baixado ou validado (o ambiente de desenvolvimento não alcança essas URLs); licenças e uso
+comercial seguem "não verificados". O Netlify limita respostas de função a ~6 MB: feeds grandes devem passar pelo
+`server.mjs` (Render). Atualize também `INVESTIGATED_SOURCES` ao validar cada fonte.

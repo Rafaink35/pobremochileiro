@@ -41,6 +41,6 @@ JSON por linha): `tool` (o que a IA está consultando), `text` (trechos da respo
 ## Provedor do chat: Gemini ou Claude (01/11/2026)
 
 O chat escolhe o provedor pelas variáveis do servidor: `AI_PROVIDER=gemini|anthropic` força; sem ele, usa **Gemini** se
-`GEMINI_API_KEY` existir, senão Claude (`ANTHROPIC_API_KEY`). `GEMINI_MODEL` (padrão `gemini-2.5-flash`) troca o modelo.
+`GEMINI_API_KEY` existir, senão Claude (`ANTHROPIC_API_KEY`). `GEMINI_MODEL` (padrão `gemini-flash-latest`, que acompanha o Flash mais novo) troca o modelo.
 As mesmas ferramentas, a mesma verificação de valores e o mesmo limite diário valem nos dois. O Gemini responde por turno
 inteiro (sem streaming palavra a palavra). O `/api/roteiro` continua só com Claude.

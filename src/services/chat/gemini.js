@@ -2,7 +2,7 @@
 // (dados reais + verificação de valores) e emite os mesmos eventos NDJSON. A chave fica só no servidor.
 import { findUnverifiedAmounts } from './amounts.js';
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+export const DEFAULT_GEMINI_MODEL = 'gemini-flash-latest'; // alias que acompanha o Flash mais novo; fixe um nome estável em GEMINI_MODEL se preferir
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /** O Gemini aceita um subconjunto do JSON Schema: tipos em MAIÚSCULAS, sem listas de tipos nem additionalProperties. */
@@ -40,7 +40,7 @@ const toContents = (history) => history.map((m) => ({ role: m.role === 'assistan
 export function geminiErrorMessage(status) {
   if (status === 429) return 'o limite do Gemini foi atingido agora; tente de novo em alguns minutos';
   if (status === 400 || status === 403) return 'a chave do Gemini foi recusada ou o pedido é inválido';
-  if (status === 404) return 'o modelo do Gemini não foi encontrado; confira GEMINI_MODEL no servidor';
+  if (status === 404) return 'o modelo do Gemini não foi encontrado; confira GEMINI_MODEL no servidor (valor sugerido: gemini-flash-latest)';
   return 'a IA está indisponível agora';
 }
 

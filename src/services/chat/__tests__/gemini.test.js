@@ -48,7 +48,7 @@ describe('chat com Gemini', () => {
     const res = await createChatHandler({ env, fetchImpl })(req({ messages: [{ role: 'user', content: 'oi' }] }));
     const ev = await events(res);
     expect(ev.find((e) => e.type === 'text').delta).toBe('Olá!');
-    expect(ev.at(-1)).toMatchObject({ type: 'done', usage: { input: 10, output: 3 }, model: 'gemini-2.5-flash' });
+    expect(ev.at(-1)).toMatchObject({ type: 'done', usage: { input: 10, output: 3 }, model: 'gemini-flash-latest' });
     expect(seen[0].headers['x-goog-api-key']).toBe('g-key');
     expect(seen[0].url).not.toContain('g-key');
     expect(JSON.stringify(ev)).not.toContain('g-key');

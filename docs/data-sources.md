@@ -41,7 +41,7 @@ provedor GTFS existente. Sem a variável, o feed responde 503 e a tela diz "não
 |---|---|---|
 | Rio (SMTR / data.rio) | `GTFS_RIO_URL` | Confirmar URL atual e licença no portal. |
 | SPTrans | `GTFS_SPTRANS_URL` | O download oficial exige cadastro: hospede o ZIP autorizado. |
-| ANTT | `GTFS_ANTT_URL` | Não está confirmado que a ANTT publique GTFS; é preciso converter os horários. |
+| ANTT ([quadros-horarios.antt.gov.br](https://quadros-horarios.antt.gov.br/)) | `GTFS_ANTT_URL` | Portal não acessível do ambiente de desenvolvimento: formato de download não confirmado; se não for GTFS, é preciso converter. |
 
 Pendências: nenhum feed foi baixado ou validado (o ambiente de desenvolvimento não alcança essas URLs); licenças e uso
 comercial seguem "não verificados". O Netlify limita respostas de função a ~6 MB: feeds grandes devem passar pelo

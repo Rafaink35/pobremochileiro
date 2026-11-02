@@ -26,8 +26,8 @@ export const BRAZIL_FEEDS = [
     id: 'antt',
     label: 'Rodoviário interestadual (ANTT)',
     meta: {
-      name: 'ANTT: horários do transporte rodoviário interestadual',
-      url: 'https://dados.antt.gov.br/',
+      name: 'ANTT: Quadro de Horários do transporte rodoviário interestadual',
+      url: 'https://quadros-horarios.antt.gov.br/',
       coverage: 'Linhas rodoviárias interestaduais e internacionais regulamentadas pela ANTT',
     },
   },

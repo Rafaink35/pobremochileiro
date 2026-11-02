@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { planSummary } from '../services/planner/stays.js';
 import { FxCard } from '../components/FxCard.jsx';
 import { FlightsCard } from '../components/FlightsCard.jsx';
 import { TripPlan } from '../components/TripPlan.jsx';
@@ -20,7 +22,18 @@ import {
 
 const DAY_OPTIONS = ['1', '2', '3', '4', '5', '7', '10', '14'];
 
-export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
+const TABS = [
+  ['plano', 'Meu plano'],
+  ['voos', 'Voos'],
+  ['datas', 'Datas flexíveis'],
+  ['combos', 'Combos'],
+  ['terra', 'Ônibus e mais'],
+  ['hospedagem', 'Hospedagem'],
+  ['assistente', 'Assistente'],
+];
+
+export function Planner({ draft, setDraft, onSaveDraft, onSubmit, onNavigate }) {
+  const [tab, setTab] = useState('plano');
   const { tripName, origin, days, budget } = draft;
 
   const addItems = (rows, category = 'Transporte') =>
@@ -35,6 +48,10 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
         })),
       ],
     }));
+
+  const summary = planSummary(draft);
+  const planCount = (draft.items?.length ?? 0) + (draft.stays?.length ?? 0);
+  const money = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   const update = (field) => (e) => setDraft((old) => ({ ...old, [field]: e.target.value }));
 
@@ -60,6 +77,22 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
         </div>
       </div>
 
+      <div className="planner-tabs" role="tablist" aria-label="Partes do planejador">
+        {TABS.map(([id, label]) => (
+          <button key={id} type="button" role="tab" id={`tab-${id}`} aria-selected={tab === id} aria-controls={`panel-${id}`}
+            className={tab === id ? 'btn-primary' : 'btn-outline'} onClick={() => setTab(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab !== 'plano' && (
+        <p className="plan-bar" role="status">
+          <b>Meu plano:</b> {planCount} {planCount === 1 ? 'item' : 'itens'} · total parcial {money(summary.knownTotal)}
+          <button type="button" className="back-link" onClick={() => setTab('plano')}>Ver plano →</button>
+        </p>
+      )}
+
+      {tab === 'plano' && (<div role="tabpanel" id="panel-plano" aria-labelledby="tab-plano">
       <div className="planner-layout">
         <form
           className="planner-form"
@@ -137,23 +170,28 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
 
       <TripPlan draft={draft} setDraft={setDraft} />
 
-      <WhiteLabelSearch />
+      </div>)}
 
-      <ChatAgent draft={draft} onUseInPlan={addItems} />
+      {tab === 'voos' && (
+        <div role="tabpanel" id="panel-voos" aria-labelledby="tab-voos">
+          <WhiteLabelSearch />
+          <FlightsCard onUseInPlan={addItems} />
+        </div>
+      )}
+      {tab === 'datas' && <div role="tabpanel" id="panel-datas" aria-labelledby="tab-datas"><FlexSearch onUseInPlan={addItems} /></div>}
+      {tab === 'combos' && <div role="tabpanel" id="panel-combos" aria-labelledby="tab-combos"><ComboCompare onUseInPlan={addItems} /></div>}
+      {tab === 'terra' && <div role="tabpanel" id="panel-terra" aria-labelledby="tab-terra"><MoreSearch onUseInPlan={addItems} /></div>}
+      {tab === 'hospedagem' && (
+        <div role="tabpanel" id="panel-hospedagem" aria-labelledby="tab-hospedagem" className="route-card">
+          <h2>Hotéis, hostels, campings e trabalho em troca</h2>
+          <p>Procure na tela de Hospedagem e use <b>"Adicionar ao planejador"</b> no detalhe de cada local. Eles voltam para o seu plano.</p>
+          <button type="button" className="btn-primary" onClick={() => onNavigate?.('Hospedagem')}>Abrir Hospedagem</button>
+        </div>
+      )}
+      {tab === 'assistente' && <div role="tabpanel" id="panel-assistente" aria-labelledby="tab-assistente"><ChatAgent draft={draft} onUseInPlan={addItems} /></div>}
 
-      <FlexSearch onUseInPlan={addItems} />
-
-      <ComboCompare onUseInPlan={addItems} />
-
-      <MoreSearch onUseInPlan={addItems} />
-
-
-      <details className="flights-fallback">
-        <summary>Busca alternativa de passagens</summary>
-        <FlightsCard />
-      </details>
-
-      <div className="next-steps">
+      {tab === 'plano' && (
+        <div className="next-steps">
         <h3>O que colocar na conta?</h3>
         <div className="cost-categories">
           <span>
@@ -174,6 +212,7 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit }) {
           </span>
         </div>
       </div>
+      )}
     </section>
   );
 }

@@ -183,6 +183,7 @@ export default function App() {
             setDraft={setDraft}
             onSaveDraft={() => notify('Rascunho salvo neste navegador.')}
             onSubmit={() => notify('Rascunho atualizado e salvo neste navegador.')}
+            onNavigate={go}
           />
         )}
 

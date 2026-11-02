@@ -40,6 +40,7 @@ const toContents = (history) => history.map((m) => ({ role: m.role === 'assistan
 export function geminiErrorMessage(status) {
   if (status === 429) return 'o limite do Gemini foi atingido agora; tente de novo em alguns minutos';
   if (status === 400 || status === 403) return 'a chave do Gemini foi recusada ou o pedido é inválido';
+  if (status === 404) return 'o modelo do Gemini não foi encontrado; confira GEMINI_MODEL no servidor';
   return 'a IA está indisponível agora';
 }
 

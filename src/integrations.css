@@ -209,3 +209,8 @@ a.route-link:hover { background: #f6f0e4; border-radius: 12px; }
 .route-hotels { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
 .route-hotels li { border: 1px solid var(--line, #e6dece); border-radius: 12px; padding: 12px; background: #fffaf0; display: grid; gap: 2px; }
 .route-hotels small { color: #78847a; }
+.planner-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; position: sticky; top: 0; z-index: 5; background: var(--cream, #f6f0e4); padding: 8px 0; }
+.plan-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: #fffaf0; border: 1px solid var(--line, #e6dece); border-radius: 12px; padding: 8px 14px; margin: 0 0 14px; font-size: 0.85rem; }
+.plan-bar .back-link { padding: 0; margin-left: auto; }
+.flights-list .flight-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.flights-list .flight-row > span { flex: 1 1 280px; }

@@ -13,10 +13,11 @@ const monthLabel = (ym) => {
 
 const EMPTY = { origin: '', destination: '', date: '', returnDate: '', month: '', oneWay: false, adults: '1' };
 
-export function FlightsCard() {
+export function FlightsCard({ onUseInPlan }) {
   const [form, setForm] = useState(EMPTY);
   const [state, setState] = useState({ status: 'idle', flights: [], error: '' });
   const [cal, setCal] = useState({ status: 'idle', months: [], error: '' });
+  const [added, setAdded] = useState(() => new Set());
   const set = (k) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value.trim();
     setForm((f) => ({ ...f, [k]: value }));
@@ -49,6 +50,16 @@ export function FlightsCard() {
     } catch (err) {
       setCal({ status: 'error', months: [], error: err.message });
     }
+  };
+
+  const useFlight = (f) => {
+    onUseInPlan([{
+      label: `Voo ${form.origin.toUpperCase()} → ${form.destination.toUpperCase()} (${fmtDate(f.departureAt)}${f.returnAt ? ` a ${fmtDate(f.returnAt)}` : ''})`,
+      amount: f.total.toFixed(2).replace('.', ','),
+      url: f.link,
+      source: 'Aviasales',
+    }]);
+    setAdded((old) => new Set([...old, f.link]));
   };
 
   const pickMonth = (month) => setForm((f) => ({ ...f, month, date: '', returnDate: '' }));
@@ -140,13 +151,19 @@ export function FlightsCard() {
       )}
       <ul className="flights-list">
         {state.flights.map((f) => (
-          <li key={f.link}>
-            <a href={f.link} target="_blank" rel="noopener noreferrer sponsored">
+          <li key={f.link} className="flight-row">
+            <span>
               <b>{brl(f.total)}</b>
               {f.passengers > 1 ? ` (${brl(f.price)} por pessoa)` : ''} · {f.airline} · {fmtDate(f.departureAt)}
               {f.returnAt ? ` → ${fmtDate(f.returnAt)}` : ''}
               {f.transfers === 0 ? ' · direto' : ` · ${f.transfers} escala(s)`}
-            </a>
+            </span>
+            <a className="btn-outline" href={f.link} target="_blank" rel="noopener noreferrer sponsored">Comprar no site</a>
+            {onUseInPlan && (
+              <button type="button" className="btn-primary" onClick={() => useFlight(f)} disabled={added.has(f.link)}>
+                {added.has(f.link) ? 'No plano ✓' : 'Adicionar ao plano'}
+              </button>
+            )}
           </li>
         ))}
       </ul>

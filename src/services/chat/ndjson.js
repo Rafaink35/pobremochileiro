@@ -41,7 +41,7 @@ export function applyChatEvent(state, event) {
     case 'warning':
       return { ...state, warning: event.message };
     case 'error':
-      return { ...state, error: event.message, status: '' };
+      return { ...state, error: event.detail ? `${event.message} (${event.detail})` : event.message, status: '' };
     case 'done':
       return { ...state, done: true, status: '' };
     default:

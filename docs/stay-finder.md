@@ -133,4 +133,5 @@ node scripts/analyze-overpass-json.mjs <arquivo.json | pasta> [--center lat,lon]
 ```
 - **Não acessa a rede** (fetch e conexões são bloqueados na partida; não há opção para liberar) e **não transmite nem copia** os arquivos. Imprime só contagens (nomes só com `--examples`, no terminal).
 - **Os JSON reais não vão para o Git**: use as pastas `PobreMochileiro-Validacao/` ou `validacao-local/`, ou nomes `*.overpass.json` / `overpass-*.json` (todos no `.gitignore`); um teste falha se um JSON versionado parecer resposta do Overpass.
-- Requer Node.js. No Windows sem Node, o roteiro PowerShell de análise (contagens brutas) continua sendo a alternativa.
+- **Arquivos do Windows PowerShell 5.1** (`Set-Content -Encoding UTF8`) vêm com BOM UTF-8: o analisador o ignora **só na leitura**, avisa na saída e não altera o arquivo. UTF-16 não é lido e gera erro explícito; JSON quebrado ou sem `elements` também são erro, nunca adaptados em silêncio.
+- Requer Node.js 20 ou superior. No Windows sem Node, o roteiro PowerShell de análise (contagens brutas) continua sendo a alternativa.

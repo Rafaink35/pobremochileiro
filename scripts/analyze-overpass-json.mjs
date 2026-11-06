@@ -95,13 +95,26 @@ function expand(paths) {
   });
 }
 
+/**
+ * Lê o texto de um arquivo JSON sem alterá-lo. Um BOM UTF-8 no início (3 bytes EF BB BF, comum em arquivos gravados pelo Windows
+ * PowerShell 5.1 com `Set-Content -Encoding UTF8`) é ignorado só na LEITURA e informado em `bom`; o conteúdo não é modificado.
+ * UTF-16 não é suportado e é dito de forma explícita (nada é adaptado em silêncio).
+ */
+export function readJsonText(file) {
+  const buf = readFileSync(file);
+  if ((buf[0] === 0xff && buf[1] === 0xfe) || (buf[0] === 0xfe && buf[1] === 0xff)) throw new Error('o arquivo está em UTF-16, que esta ferramenta não lê (salve como UTF-8)');
+  const bom = buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf;
+  return { text: buf.toString('utf8', bom ? 3 : 0), bom };
+}
+
 /** Lê e analisa arquivos. Erros de leitura viram uma entrada com `error` (não interrompem os demais). */
 export function analyzeFiles(paths, opts = {}) {
   return expand(paths).map((file) => {
     try {
-      const json = JSON.parse(readFileSync(file, 'utf8'));
-      if (!Array.isArray(json?.elements)) return { file: basename(file), error: 'sem a lista "elements" (não parece resposta do Overpass)' };
-      return { file: basename(file), ...analyzeElements(json.elements, opts) };
+      const { text, bom } = readJsonText(file);
+      const json = JSON.parse(text);
+      if (!Array.isArray(json?.elements)) return { file: basename(file), bom, error: 'sem a lista "elements" (não parece resposta do Overpass)' };
+      return { file: basename(file), bom, ...analyzeElements(json.elements, opts) };
     } catch (e) {
       return { file: basename(file), error: `não consegui ler: ${e.message}` };
     }
@@ -114,6 +127,7 @@ function printText(results, examples) {
   for (const r of results) {
     if (r.error) { console.log(`\n${r.file}: ${r.error}`); continue; }
     const { raw: a, pipeline: p, display: d } = r;
+    if (r.bom) console.log(`\n${r.file}: BOM UTF-8 detectado (comum em arquivos do Windows PowerShell): ignorado só na leitura; o arquivo original não foi alterado.`);
     console.log(`\n${r.file} — centro usado ${r.center.lat.toFixed(4)}, ${r.center.lon.toFixed(4)} — processado em ${r.ms} ms`);
     console.log(`  BRUTO: total=${a.total} | com nome=${a.named} sem nome=${a.unnamed} | site=${a.website} telefone=${a.phone} cidade=${a.city} estrelas=${a.stars} horário=${a.openingHours} | nomes repetidos: ${a.repeatedNameGroups} grupos (${a.repeatedNameElements} elementos)`);
     console.log(`         tipos de elemento: ${fmt(a.elementTypes)} | tourism: ${fmt(a.tourism)}`);

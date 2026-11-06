@@ -1,11 +1,12 @@
 // P5: ferramenta LOCAL de análise dos JSON do Overpass. Arquivos de teste INVENTADOS (gerados aqui, em pasta temporária).
 import { describe, expect, it } from 'vitest';
 import { execFileSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { analyzeElements, analyzeFiles, blockNetwork } from '../../../../scripts/analyze-overpass-json.mjs';
+import { analyzeElements, analyzeFiles, blockNetwork, readJsonText } from '../../../../scripts/analyze-overpass-json.mjs';
 
 const root = process.cwd();
 const NOW = new Date('2026-11-10T12:00:00Z');
@@ -107,6 +108,54 @@ describe('analyzeFiles e a linha de comando', () => {
   it('o código da ferramenta não tem caminho para a rede nem opção de liberá-la', () => {
     const src = readFileSync(join(root, 'scripts/analyze-overpass-json.mjs'), 'utf8').replace(/\/\/.*$/gm, '');
     expect(src).not.toMatch(/node:https?['"]|undici|XMLHttpRequest|--allow-network|\bfetch\s*\(/);
+  });
+});
+
+describe('arquivos do Windows PowerShell 5.1: BOM UTF-8 lido sem alterar o original', () => {
+  const sha = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
+  // estilo de `ConvertTo-Json | Set-Content -Encoding UTF8` no PowerShell 5.1: BOM, CRLF, indentação de 4 espaços, \u0027 no lugar de aspas simples
+  const psStyle = (obj) => Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(JSON.stringify(obj, null, 4).replace(/\n/g, '\r\n').replace(/'/g, '\\u0027'), 'utf8')]);
+
+  it('arquivo com BOM é lido, o resultado é igual ao do arquivo sem BOM, e o original continua idêntico byte a byte', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ovp-'));
+    try {
+      const withBom = join(dir, 'com-bom.json');
+      const without = join(dir, 'sem-bom.json');
+      writeFileSync(withBom, psStyle({ elements: ELEMENTS }));
+      writeFileSync(without, JSON.stringify({ elements: ELEMENTS }));
+      const before = sha(withBom);
+      const [a, b] = analyzeFiles([withBom, without], { center: { lat: 38.7, lon: -9.1 }, now: NOW });
+      expect(a.error).toBeUndefined();
+      expect(a.bom).toBe(true);
+      expect(b.bom).toBe(false);
+      expect(a.raw).toEqual(b.raw);
+      expect(a.pipeline).toEqual(b.pipeline);
+      expect(a.display).toEqual(b.display);
+      expect(sha(withBom)).toBe(before); // leitura somente: o original não é alterado
+      expect(readFileSync(withBom).subarray(0, 3)).toEqual(Buffer.from([0xef, 0xbb, 0xbf])); // o BOM continua no arquivo
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  it('a CLI avisa que o BOM foi ignorado só na leitura', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ovp-'));
+    try {
+      writeFileSync(join(dir, 'a.json'), psStyle({ elements: ELEMENTS }));
+      const out = execFileSync('node', ['scripts/analyze-overpass-json.mjs', dir, '--center', '38.7,-9.1'], { cwd: root, encoding: 'utf8' });
+      expect(out).toMatch(/BOM UTF-8 detectado.*ignorado só na leitura.*não foi alterado/);
+      expect(out).toMatch(/BRUTO: total=10/);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  it('UTF-16 não é adaptado em silêncio: erro explícito; JSON quebrado continua sendo erro', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ovp-'));
+    try {
+      writeFileSync(join(dir, 'utf16.json'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(JSON.stringify({ elements: ELEMENTS }), 'utf16le')]));
+      writeFileSync(join(dir, 'quebrado.json'), Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('{ não é json')]));
+      const [q, u] = analyzeFiles([dir]);
+      expect(q.error).toMatch(/não consegui ler/);
+      expect(u.error).toMatch(/UTF-16/);
+      expect(() => readJsonText(join(dir, 'utf16.json'))).toThrow(/UTF-16/);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 });
 

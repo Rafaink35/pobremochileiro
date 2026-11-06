@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { ArrowUpRight, Bus, Plane } from 'lucide-react';
 import { fetchFlights } from '../api/flights.js';
-import { fetchOsmCampings } from '../services/lodging/osmCamping.js';
-import { dedupeLodgings } from '../services/lodging/lodgingModel.js';
+import { fetchStays } from '../api/stays.js';
+import { describePricing, flattenGroups } from '../services/stays/legacy.js';
 import { buildRouteOptions, OPTION_KIND } from '../services/routes/routeOptions.js';
 import { CITIES, findCity } from '../data/airports.js';
 import { searchGroups, searchUrl } from '../data/searchSites.js';
@@ -154,7 +154,12 @@ export function RouteExplorer({ onNavigate, draft, setDraft, notify }) {
     setShowAll(false);
     setHotels({ status: 'loading', records: [], message: '' });
     setState({ status: 'loading', error: '', options: [], origin, destination, approximate: false });
-    fetchOsmCampings(destination.osm, { category: 'hotel' }).then((r) => setHotels({ status: r.status, records: dedupeLodgings(r.records ?? []), message: r.message ?? '' }));
+    // Consulta externa SÓ pelo servidor (/api/stays: cache, limite de requisições, fontes e licença); o navegador não fala com o Overpass.
+    fetchStays({ q: destination.osm, category: 'hotel,pousada' }).then((r) => {
+      if (r.groups) setHotels({ status: 'ok', records: flattenGroups(r.groups), message: '' });
+      else if (r.status === 'ambiguous' || r.status === 'broad') setHotels({ status: 'empty', records: [], message: 'Destino com mais de um lugar possível: escolha na tela Hospedagem.' });
+      else setHotels({ status: r.status === 'unavailable' ? 'unavailable' : 'empty', records: [], message: r.message ?? 'Sem resultado.' });
+    });
     try {
       const data = await fetchFlights({ origin: origin.iata, destination: destination.iata, oneWay: true, month: form.month || undefined, adults: Number(form.adults) });
       setState({ status: 'done', error: '', origin, destination, approximate: Boolean(data.approximate), options: buildRouteOptions({ origin, destination, flights: data.flights ?? [] }) });
@@ -215,7 +220,7 @@ export function RouteExplorer({ onNavigate, draft, setDraft, notify }) {
       {state.status === 'done' && (
         <div className="route-card">
           <h2>Hotéis em {destination.city}</h2>
-          {hotels.status === 'loading' && <p role="status">Consultando o OpenStreetMap…</p>}
+          {hotels.status === 'loading' && <p role="status">Consultando as fontes de hospedagem…</p>}
           {(hotels.status === 'unavailable' || hotels.status === 'empty') && <p role="status">{hotels.message}</p>}
           {hotels.status === 'ok' && (
             <ul className="route-hotels">
@@ -223,7 +228,7 @@ export function RouteExplorer({ onNavigate, draft, setDraft, notify }) {
                 <li key={h.id}>
                   <b>{h.name ?? 'Local sem nome'}</b>
                   <small>{KIND_NAME[h.kind] ?? 'Hospedagem'}{h.stars ? ` · ${h.stars}★` : ''}</small>
-                  <small>preço não informado</small>
+                  <small>{describePricing(h.pricing) ?? 'preço não informado'}</small>
                   {canPlan && (
                     <button type="button" className="btn-outline" disabled={hotelInPlan(h)} onClick={() => addHotel(h)}>
                       {hotelInPlan(h) ? 'No plano ✓' : 'Adicionar ao plano'}

@@ -186,7 +186,21 @@ describe('Stay Finder: deduplicação entre fontes na pesquisa', () => {
     const item = all(r.groups)[0];
     expect(item.sources.map((s) => s.provider).sort()).toEqual(['osm', 'wikivoyage']);
     expect(item.prices).toHaveLength(2);
-    expect(item.sources.find((s) => s.provider === 'wikivoyage').license).toBe('CC BY-SA 3.0');
+    expect(item.sources.find((s) => s.provider === 'wikivoyage').license).toContain('CC BY-SA 4.0');
+    expect(item.category).toBe('hostel'); // a categoria vem da fonte estruturada (OSM), não do nome
     expect(r.counts.duplicatesGrouped).toBe(1);
+  });
+
+  it('listagem do Wikivoyage sem correspondência estruturada NÃO é classificada pelo nome nem aparece nas abas por categoria', async () => {
+    const wikitext = '{{Sleep | name=Hostel Só Na Wiki | lat=38.7200 | long=-9.1500 | price=€25 per person per night | lastedit=2026-10-15}}';
+    const wiki = { query: { pages: [{ title: 'Lisbon', revisions: [{ timestamp: '2026-10-16T00:00:00Z', slots: { main: { content: wikitext } } }] }] } };
+    const svc = service(fakeFetch({ wikivoyage: wiki }));
+    const byTab = await svc.search({ query: 'Lisboa', categories: 'hostel' });
+    expect(all(byTab.groups).map((i) => i.name)).toEqual(['Hostel Exemplo Alfama']);
+    expect(byTab.counts.unclassifiedHidden).toBe(1);
+    const withUnclassified = await svc.search({ query: 'Lisboa', categories: 'hostel,nao_classificada' });
+    const wiki1 = all(withUnclassified.groups).find((i) => i.name === 'Hostel Só Na Wiki');
+    expect(wiki1.category).toBe('nao_classificada');
+    expect(wiki1.pricing.class).toBe('published');
   });
 });

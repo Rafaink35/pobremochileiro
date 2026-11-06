@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createDestinationResolver, isAmbiguous, RESOLVE_STATUS, toCandidate, validateQuery } from '../destination.js';
 import { CITIES, fakeFetch, jsonResponse, place, NOW } from './fixtures/index.js';
+import { REAL } from './fixtures/real-nominatim-snapshots.js';
 
 const instant = { run: (fn) => fn() };
 const resolver = (fetchImpl, o = {}) => createDestinationResolver({ fetchImpl, limiter: instant, sleep: async () => {}, now: () => NOW, contact: 'teste@example.test', ...o });
@@ -19,10 +20,10 @@ describe('resolvedor global de destinos', () => {
     expect(r.destination.regionCode).toBe('BR-RJ');
     expect((await resolver(fakeFetch()).resolve('Lisboa')).destination.nameEn).toBe('Lisbon');
   });
-  it('destino ambíguo (Santiago do Chile × Santiago de Compostela) devolve candidatos, sem escolher', async () => {
+  it('destino ambíguo (Santiago do Chile × Santiago da Costa Rica) devolve candidatos, sem escolher', async () => {
     const r = await resolver(fakeFetch()).resolve('Santiago');
     expect(r.status).toBe(RESOLVE_STATUS.AMBIGUOUS);
-    expect(r.candidates.map((c) => c.countryCode)).toEqual(['CL', 'ES']);
+    expect(r.candidates.map((c) => c.countryCode)).toEqual(['CL', 'CR']);
     expect(r.destination).toBeUndefined();
   });
   it('mesmo nome no mesmo país e perto não é ambíguo; importância muito diferente também não', () => {
@@ -71,5 +72,40 @@ describe('resolvedor global de destinos', () => {
   });
   it('validateQuery aceita qualquer alfabeto', () => {
     for (const q of ['東京', 'Αθήνα', 'القاهرة', 'São Paulo', 'Москва']) expect(validateQuery(q)).toBe(q);
+  });
+});
+
+describe('casos reais do Nominatim (snapshots de 06/11/2026)', () => {
+  const real = (q) => resolver(async () => jsonResponse(REAL[q])).resolve(q);
+  it('Lisboa: cidade, sem confundir com o distrito de mesmo nome', async () => {
+    const r = await real('Lisboa');
+    expect(r.status).toBe(RESOLVE_STATUS.OK);
+    expect(r.destination.id).toBe('relation/5400890');
+  });
+  it('Buenos Aires: cidade; a província e o condado da Costa Rica não tornam ambíguo', async () => {
+    const r = await real('Buenos Aires');
+    expect(r.status).toBe(RESOLVE_STATUS.OK);
+    expect(r.destination.countryCode).toBe('AR');
+  });
+  it('Paraty: o município do Rio, não o achado só por nome alternativo (Araquari)', async () => {
+    const r = await real('Paraty');
+    expect(r.status).toBe(RESOLVE_STATUS.OK);
+    expect(r.destination.id).toBe('relation/1277591');
+  });
+  it('Santiago: empate real entre Chile e Costa Rica pede escolha; Santiago de Cuba etc. ficam de fora', async () => {
+    const r = await real('Santiago');
+    expect(r.status).toBe(RESOLVE_STATUS.AMBIGUOUS);
+    expect(r.candidates.map((c) => c.countryCode).sort()).toEqual(['BR', 'CL', 'CR']);
+  });
+  it('Tóquio é uma província: oferece pesquisa a 15 km do ponto de referência, sem fingir cobrir a área toda', async () => {
+    const r = await real('Tóquio');
+    expect(r.status).toBe(RESOLVE_STATUS.BROAD);
+    expect(r.candidates[0]).toMatchObject({ radiusM: 15000, referencePoint: true });
+    expect(r.message).toMatch(/não cobre a área inteira/);
+  });
+  it('Paris: a França é muito mais importante que o Texas, sem ambiguidade; país inteiro continua recusado', async () => {
+    expect((await real('Paris')).destination.countryCode).toBe('FR');
+    const country = { ...REAL.Tóquio[0], addresstype: 'country', display_name: 'Japão', name: 'Japão' };
+    expect((await resolver(async () => jsonResponse([country])).resolve('Japão')).status).toBe(RESOLVE_STATUS.TOO_BROAD);
   });
 });

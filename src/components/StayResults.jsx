@@ -20,6 +20,9 @@ export function StayResults({ meta, records, kindName, onOpen, onAdd, inPlan }) 
         Resultados para <b>{meta.destination.label || meta.destination.name}</b> (raio de {Math.round(meta.destination.radiusM / 1000)} km) · pesquisa em {dateOf(meta.collectedAt)}
         {meta.status === 'partial' && ' · algumas fontes falharam (veja abaixo)'}.
       </p>
+      {meta.destinationSource && (
+        <p className="flights-note">Destino localizado com <a href={meta.destinationSource.url} target="_blank" rel="noopener noreferrer">{meta.destinationSource.name}</a> · licença {meta.destinationSource.license} · {meta.destinationSource.attribution}</p>
+      )}
       {meta.message && <p role="status">{meta.message}</p>}
       {(meta.categoryNotes ?? []).map((n) => <p key={n} className="flights-note">{n}</p>)}
       {SECTIONS.map(([key, title, hint]) => {

@@ -91,19 +91,26 @@ describe('fonte Wikivoyage (candidata)', () => {
     expect(t.map((x) => x.name)).toEqual(['sleep', 'listing', 'sleep', 'sleep', 'sleep', 'eat']); // a predefinição aninhada {{nowrap}} fica dentro da externa
     expect(t[0].params.name).toBe('[[Hostel Exemplo Wiki]]');
   });
-  it('registros só com coordenadas, dentro da área e com tipo claro no nome; o resto é contado, não exibido', () => {
+  it('registros só com coordenadas e dentro da área; o tipo NÃO é deduzido do nome: ficam "não classificados"', () => {
     const d = { ...dest('lisboa') };
     const { records, skipped } = parseSleepListings(WIKITEXT, { title: 'Lisbon', revisionAt: '2026-10-01T00:00:00Z', destination: d, collectedAt: NOW.toISOString() });
-    expect(records.map((r) => r.name)).toEqual(['Hostel Exemplo Wiki', 'Camping Fictício Wiki']);
-    expect(skipped).toMatchObject({ noCoordinates: 1, uncategorized: 1, outsideArea: 1 });
-    expect(records[0].category).toBe('hostel');
-    expect(records[0].sources[0]).toMatchObject({ license: 'CC BY-SA 3.0', attribution: 'Wikivoyage contributors' });
+    expect(records.map((r) => r.name)).toEqual(['Hostel Exemplo Wiki', 'Camping Fictício Wiki', 'Casa Misteriosa']);
+    expect(skipped).toMatchObject({ noCoordinates: 1, outsideArea: 1 });
+    expect(records.map((r) => r.category)).toEqual(['nao_classificada', 'nao_classificada', 'nao_classificada']); // "Hostel" e "Camping" no nome não bastam
+    expect(records[0].sources[0]).toMatchObject({ license: expect.stringContaining('CC BY-SA 4.0'), attribution: 'Wikivoyage contributors' });
   });
   it('preço: único valor com moeda vale; faixa é ambígua e não vira preço', () => {
     const { records } = parseSleepListings(WIKITEXT, { title: 'Lisbon', revisionAt: '2026-10-01T00:00:00Z', destination: dest('lisboa'), collectedAt: NOW.toISOString() });
     expect(records[0].prices[0]).toMatchObject({ amount: 18, currency: 'EUR', status: 'published', observedAt: '2026-09-01T00:00:00.000Z' });
     expect(records[1].prices).toEqual([]);
     expect(records[1].priceText).toBe('€15-25');
+  });
+  it('sem `lastedit` na listagem o preço fica indisponível: a data da revisão da página não prova a idade do preço', () => {
+    const text = '{{Sleep | name=Pousada Real Sem Data | lat=38.71 | long=-9.13 | price=R$192}}';
+    const { records } = parseSleepListings(text, { title: 'Paraty', revisionAt: '2026-11-01T17:58:48Z', destination: dest('lisboa'), collectedAt: NOW.toISOString() });
+    expect(records[0].priceText).toBe('R$192');
+    expect(records[0].prices[0].observedAt).toBeNull(); // classificado como indisponível adiante
+    expect(records[0].sources[0].pageRevisionAt).toBe('2026-11-01T17:58:48Z');
   });
   it('busca pela API com o nome em inglês, identifica-se e trata página inexistente sem inventar', async () => {
     const body = { query: { pages: [{ title: 'Lisbon', revisions: [{ timestamp: '2026-10-01T00:00:00Z', slots: { main: { content: WIKITEXT } } }] }] } };
@@ -112,7 +119,7 @@ describe('fonte Wikivoyage (candidata)', () => {
     const src = createWikivoyageSource({ fetchImpl: f, limiter: instant, sleep: async () => {}, now: () => NOW, contact: 'x@y.test' });
     const out = await src.search({ destination: dest('lisboa'), categories: ['hostel', 'camping'] });
     expect(url).toContain('titles=Lisbon');
-    expect(out.records).toHaveLength(2);
+    expect(out.records).toHaveLength(3);
     const none = await createWikivoyageSource({ fetchImpl: fakeFetch(), limiter: instant, now: () => NOW }).search({ destination: dest('lisboa'), categories: ['hostel'] });
     expect(none.records).toEqual([]);
     expect(none.note).toMatch(/Sem página/);

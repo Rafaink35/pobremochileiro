@@ -10,9 +10,14 @@ export const DEFAULT_GEOCODER_URL = 'https://nominatim.openstreetmap.org/search'
 export const MIN_RADIUS_M = 2000;
 export const MAX_RADIUS_M = 25000;
 const TOO_BROAD_HALF_DIAGONAL_M = 60_000;
-const BROAD_KINDS = new Set(['country', 'state', 'region', 'province', 'continent', 'county', 'state_district', 'archipelago', 'ocean', 'sea']);
+// Recusados sempre: um país ou continente inteiro não é destino.
+const NEVER_KINDS = new Set(['country', 'continent', 'archipelago', 'ocean', 'sea']);
+// Áreas administrativas amplas (estado, província, região, condado): a pessoa confirma uma pesquisa a 15 km do ponto de referência.
+const ADMIN_BROAD_KINDS = new Set(['state', 'region', 'province', 'county', 'state_district']);
+const BROAD_KINDS = new Set([...NEVER_KINDS, ...ADMIN_BROAD_KINDS]);
 
-export const RESOLVE_STATUS = Object.freeze({ OK: 'ok', AMBIGUOUS: 'ambiguous', NOT_FOUND: 'not_found', TOO_BROAD: 'too_broad', INVALID: 'invalid', UNAVAILABLE: 'unavailable' });
+export const RESOLVE_STATUS = Object.freeze({ OK: 'ok', AMBIGUOUS: 'ambiguous', BROAD: 'broad', NOT_FOUND: 'not_found', TOO_BROAD: 'too_broad', INVALID: 'invalid', UNAVAILABLE: 'unavailable' });
+export const BROAD_REFERENCE_RADIUS_M = 15_000;
 
 export function validateQuery(q) {
   const t = String(q ?? '').normalize('NFC').trim();
@@ -41,6 +46,7 @@ export function toCandidate(r) {
     id: `${r.osm_type}/${r.osm_id}`,
     name: String(r.name || a.city || a.town || a.village || String(r.display_name ?? '').split(',')[0] || '').trim(),
     nameEn: names['name:en'] ?? names.name ?? null,
+    nameEnExplicit: names['name:en'] ?? null,
     label: String(r.display_name ?? '').slice(0, 200),
     kind: String(r.addresstype || r.type || ''),
     country: a.country ?? null,
@@ -53,16 +59,26 @@ export function toCandidate(r) {
     halfDiagonalM: half,
     radiusM: Math.round(Math.min(MAX_RADIUS_M, Math.max(MIN_RADIUS_M, half ?? 5000))),
     importance: Number.isFinite(Number(r.importance)) ? Number(r.importance) : 0,
+    placeRank: Number.isFinite(Number(r.place_rank)) ? Number(r.place_rank) : null,
   };
 }
 
-/** Ambíguo: países diferentes entre os dois primeiros, ou dois lugares distintos (> 30 km) com importância parecida. */
+/**
+ * Ambíguo: dois lugares DISTINTOS (países diferentes ou a mais de 30 km) com importância comparável (o segundo tem pelo menos 75%
+ * da importância do primeiro). Um lugar bem mais importante que o resto não é ambíguo ("Paris" resolve para a França).
+ */
 export function isAmbiguous(cands) {
   if (cands.length < 2) return false;
   const [a, b] = cands;
-  if (a.countryCode && b.countryCode && a.countryCode !== b.countryCode) return true;
-  const apart = haversineMeters({ lat: a.lat, lon: a.lon }, { lat: b.lat, lon: b.lon }) > 30_000;
-  return apart && b.importance >= 0.6 * a.importance;
+  const distinct = (a.countryCode && b.countryCode && a.countryCode !== b.countryCode) || haversineMeters({ lat: a.lat, lon: a.lon }, { lat: b.lat, lon: b.lon }) > 30_000;
+  return distinct && b.importance >= 0.75 * a.importance;
+}
+
+/** O nome do próprio lugar (primeiro trecho do nome completo) é o que foi digitado? Resultados achados só por nome alternativo ficam atrás. */
+export function directMatch(c, query) {
+  const q = normText(query);
+  // Só o nome completo do lugar e o nome em inglês EXPLÍCITO contam (o campo `name` do resultado pode ser o nome alternativo achado).
+  return [String(c.label ?? '').split(',')[0], c.nameEnExplicit].some((n) => normText(n) === q);
 }
 
 const CITY_KINDS = new Set(['city', 'town', 'village', 'suburb', 'municipality', 'borough', 'city_district', 'quarter', 'neighbourhood', 'hamlet']);
@@ -71,6 +87,12 @@ const CITY_KINDS = new Set(['city', 'town', 'village', 'suburb', 'municipality',
 export function isTooBroad(c) {
   if (CITY_KINDS.has(c.kind)) return false;
   return BROAD_KINDS.has(c.kind) || (c.halfDiagonalM ?? 0) > TOO_BROAD_HALF_DIAGONAL_M;
+}
+
+/** Remove áreas administrativas amplas quando há uma cidade com o mesmo nome (ex.: o distrito "Lisboa" ao lado da cidade de Lisboa). */
+export function dropShadowingAdmin(cands) {
+  const cityNames = new Set(cands.filter((c) => CITY_KINDS.has(c.kind)).map((c) => normText(c.name)));
+  return cands.filter((c) => !(ADMIN_BROAD_KINDS.has(c.kind) && cityNames.has(normText(c.name))));
 }
 
 /** Se o primeiro resultado é uma região (ex.: "Tóquio" como província) e há uma cidade com o mesmo lugar nos resultados, usa a cidade. */
@@ -131,12 +153,21 @@ export function createDestinationResolver({
       } catch (err) {
         return { status: RESOLVE_STATUS.UNAVAILABLE, message: `Não foi possível localizar o destino agora (${err?.status ? `serviço respondeu ${err.status}` : 'sem resposta'}).`, candidates: [] };
       }
-      const candidates = preferCity(out.results.map(toCandidate).filter(Boolean).sort((a, b) => b.importance - a.importance));
+      const mapped = out.results.map(toCandidate).filter(Boolean);
+      // Resultados cujo nome é o digitado vêm antes dos achados só por nome alternativo; depois, por importância.
+      const direct = mapped.filter((c) => directMatch(c, q));
+      const pool = dropShadowingAdmin(direct.length ? direct : mapped).sort((a, b) => b.importance - a.importance);
+      const candidates = preferCity(pool);
       if (!candidates.length) return { status: RESOLVE_STATUS.NOT_FOUND, message: `Não encontrei "${q}". Confira a grafia ou inclua o país.`, candidates: [], fromCache: out.fromCache };
       if (isAmbiguous(candidates)) {
         return { status: RESOLVE_STATUS.AMBIGUOUS, message: `Há mais de um lugar chamado "${q}". Escolha um.`, candidates, fromCache: out.fromCache };
       }
       const top = candidates[0];
+      if (ADMIN_BROAD_KINDS.has(top.kind) && !CITY_KINDS.has(top.kind)) {
+        // Ex.: "Tóquio" no OSM é uma província enorme: pergunta se pode pesquisar perto do ponto de referência, sem fingir que cobre tudo.
+        const ref = { ...top, radiusM: BROAD_REFERENCE_RADIUS_M, referencePoint: true };
+        return { status: RESOLVE_STATUS.BROAD, message: `"${top.name}" é uma área administrativa ampla (${top.kind}). Posso pesquisar num raio de ${BROAD_REFERENCE_RADIUS_M / 1000} km do ponto de referência dela, que não cobre a área inteira. Para outra parte, informe uma cidade ou bairro.`, candidates: [ref], fromCache: out.fromCache };
+      }
       if (isTooBroad(top)) {
         return { status: RESOLVE_STATUS.TOO_BROAD, message: `"${top.name}" é uma área muito grande (${top.kind || 'região'}). Informe uma cidade ou localidade.`, candidates: [top], fromCache: out.fromCache };
       }

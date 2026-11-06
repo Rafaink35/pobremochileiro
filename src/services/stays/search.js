@@ -1,6 +1,6 @@
 // Orquestrador do Stay Finder: destino → fontes em paralelo (cada uma isolada, com cache de 24 h, interruptor e tempo limite)
 // → deduplicação → classificação de preço → ranking. Falha de uma fonte nunca derruba a resposta: ela aparece na lista de fontes.
-import { COMMUNITY_ONLY_CATEGORIES, parseCategories } from './categories.js';
+import { COMMUNITY_ONLY_CATEGORIES, parseCategories, UNCLASSIFIED } from './categories.js';
 import { createBreaker, createStaleCache } from './cache.js';
 import { destinationFrom, MAX_RADIUS_M, MIN_RADIUS_M, RESOLVE_STATUS } from './destination.js';
 import { groupDuplicates } from './dedupe.js';
@@ -8,7 +8,8 @@ import { rankStays } from './rank.js';
 import { haversineMeters, validateCoordinates } from '../geo.js';
 
 const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('tempo esgotado'), { timeout: true })), ms))]);
-const friendly = (err) => (err?.timeout ? 'tempo esgotado' : err?.status ? `a fonte respondeu ${err.status}` : 'sem resposta da fonte');
+const friendly = (err) => (err?.timeout ? 'tempo esgotado' : err?.status ? `a fonte respondeu ${err.status}` : `sem resposta da fonte${err?.cause?.code ? ` (${err.cause.code})` : err?.code ? ` (${err.code})` : ''}`);
+const GEOCODER_SOURCE = Object.freeze({ id: 'nominatim', name: 'Nominatim (OpenStreetMap)', license: 'ODbL 1.0', attribution: '© OpenStreetMap contributors', url: 'https://operations.osmfoundation.org/policies/nominatim/' });
 
 const CATEGORY_NOTE = {
   ecovila: 'Não há fonte aberta confiável de ecovilas: nenhuma é listada sem cadastro aprovado. Use o diretório da Global Ecovillage Network nos links abaixo.',
@@ -57,14 +58,18 @@ export function createStaySearch({ resolver, sources, cache = createStaleCache()
       const usable = results.filter((r) => r.status === 'ok' || r.status === 'stale');
       const categoryNotes = categories.filter((c) => COMMUNITY_ONLY_CATEGORIES.includes(c)).map((c) => CATEGORY_NOTE[c]);
       const sourceInfo = results.map(({ records, ...info }) => ({ ...info, count: records.length }));
-      const common = { destination, categories, collectedAt: now().toISOString(), sources: sourceInfo, categoryNotes };
+      const common = { destination, destinationSource: GEOCODER_SOURCE, categories, collectedAt: now().toISOString(), sources: sourceInfo, categoryNotes };
 
       if (attempted.length && !usable.length) return { ...common, status: 'unavailable', message: 'As fontes de dados não responderam agora. Tente de novo em alguns minutos.', groups: null };
 
       const wanted = new Set(categories);
       const center = { lat: destination.lat, lon: destination.lon };
-      const records = usable.flatMap((r) => r.records).filter((r) => wanted.has(r.category));
-      const grouped = groupDuplicates(records).map((g) => ({ ...g, distanceM: g.lat != null ? Math.round(haversineMeters(center, { lat: g.lat, lon: g.lon })) : null }));
+      // Registros "não classificados" entram na deduplicação (podem ser o mesmo local de um registro classificado) e só
+      // aparecem sozinhos se a categoria "não classificada" foi pedida.
+      const records = usable.flatMap((r) => r.records).filter((r) => wanted.has(r.category) || r.category === UNCLASSIFIED);
+      const allGroups = groupDuplicates(records);
+      const unclassifiedHidden = allGroups.filter((g) => !wanted.has(g.category)).length;
+      const grouped = allGroups.filter((g) => wanted.has(g.category)).map((g) => ({ ...g, distanceM: g.lat != null ? Math.round(haversineMeters(center, { lat: g.lat, lon: g.lon })) : null }));
       const ranking = rankStays(grouped, now());
       const failed = results.filter((r) => r.status === 'failed' || r.status === 'stale').length;
       return {
@@ -73,7 +78,7 @@ export function createStaySearch({ resolver, sources, cache = createStaleCache()
         message: !attempted.length ? 'Nenhuma fonte disponível para as categorias pedidas.' : grouped.length ? null : 'Nenhum estabelecimento encontrado nas fontes consultadas. Isso não prova que não existam: as fontes podem não ter cadastro nesta área.',
         groups: { ranked: ranking.ranked, withPrice: ranking.withPrice, stalePrice: ranking.stalePrice, noPrice: ranking.noPrice },
         rankKey: ranking.rankKey, rankNotes: ranking.notes,
-        counts: { total: grouped.length, ranked: ranking.ranked.length, withPrice: ranking.withPrice.length, stalePrice: ranking.stalePrice.length, noPrice: ranking.noPrice.length, duplicatesGrouped: grouped.reduce((n, g) => n + g.groupSize - 1, 0), possibleDuplicates: grouped.filter((g) => g.possibleDuplicates.length).length },
+        counts: { total: grouped.length, ranked: ranking.ranked.length, withPrice: ranking.withPrice.length, stalePrice: ranking.stalePrice.length, noPrice: ranking.noPrice.length, duplicatesGrouped: grouped.reduce((n, g) => n + g.groupSize - 1, 0), possibleDuplicates: grouped.filter((g) => g.possibleDuplicates.length).length, unclassifiedHidden },
       };
     },
   };

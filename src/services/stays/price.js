@@ -58,6 +58,14 @@ export function parseStayCharge(text) {
   const person = PERSON.test(rest);
   const room = ROOM.test(rest);
   const night = NIGHT.test(rest);
+  // Qualquer palavra que sobre além de valor, moeda e unidade ("From R$115", "about 20 EUR", "R$300 including breakfast",
+  // "check out high/low season prices") muda o sentido do número (mínimo, aproximado, condicionado): texto ambíguo não vira preço.
+  let leftover = rest;
+  for (const [sym] of SYMBOLS) leftover = leftover.split(sym).join(' ');
+  leftover = leftover.replace(new RegExp(`(?:^|[^A-Za-z])${currency}(?![A-Za-z])`, 'i'), ' ');
+  for (const re of [PERSON, ROOM, NIGHT]) leftover = leftover.replace(new RegExp(re.source, 'giu'), ' ');
+  leftover = leftover.replace(/(?:^|[^\p{L}])(per|por|pro|pour|par|a|de|la|le|el|la)(?![\p{L}])/giu, ' ');
+  if (/[\p{L}\p{N}]/u.test(leftover)) return null;
   const basis = person && !room ? 'person' : room && !person ? 'room' : null;
   return { amount, currency, unit: basis && night ? { basis, period: 'night' } : null, text: t };
 }

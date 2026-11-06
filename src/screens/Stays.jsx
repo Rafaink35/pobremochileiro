@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Tent } from 'lucide-react';
-import { fetchOsmCampings } from '../services/lodging/osmCamping.js';
 import { fetchStays } from '../api/stays.js';
 import { flattenGroups } from '../services/stays/legacy.js';
 import { StayResults } from '../components/StayResults.jsx';
-import { dedupeLodgings, filterLodgings } from '../services/lodging/lodgingModel.js';
+import { filterLodgings } from '../services/lodging/lodgingModel.js';
 import { filterOpportunities } from '../services/workExchange/opportunity.js';
 import { fetchApprovedOpportunities } from '../api/workExchange.js';
 import { addStay, buildStayEntry } from '../services/planner/stays.js';
@@ -15,14 +14,13 @@ import { partners } from '../data/partners.js';
 import { searchGroups, searchUrl } from '../data/searchSites.js';
 
 const TABS = [['camping', 'Campings'], ['hostel', 'Hostels'], ['pousada', 'Pousadas'], ['ecovila', 'Ecovilas'], ['colaborativa', 'Hospedagem colaborativa'], ['hotel', 'Hotéis'], ['work', 'Trabalho em troca'], ['aupair', 'Au pair']];
-// Abas de busca de local (pesquisa em /api/stays). Hotéis, hostels e campings mantêm a busca direta antiga como reserva
-// quando o servidor de pesquisa não existe (ex.: desenvolvimento sem server.mjs).
+// Abas de busca de local. TODA consulta externa passa pelo servidor (/api/stays), com cache e limite de requisições:
+// o navegador nunca consulta Overpass, Nominatim ou Wikivoyage diretamente.
 const STAY_TABS = ['camping', 'hostel', 'pousada', 'ecovila', 'colaborativa', 'hotel'];
 const OSM_TABS = STAY_TABS;
-const LEGACY_TABS = ['hotel', 'hostel', 'camping'];
 const SEARCH_LABEL = { hotel: 'Procurar hotéis', hostel: 'Procurar hostels', camping: 'Procurar campings', pousada: 'Procurar pousadas', ecovila: 'Procurar ecovilas', colaborativa: 'Procurar hospedagem colaborativa' };
 const NOUN = { hotel: 'hotéis', hostel: 'hostels', camping: 'campings', pousada: 'pousadas', ecovila: 'ecovilas', colaborativa: 'hospedagem colaborativa' };
-const KIND_NAME = { camp_site: 'camping', caravan_site: 'área de motorhome', hotel: 'hotel', motel: 'motel', guest_house: 'pousada', hostel: 'hostel' };
+const KIND_NAME = { camp_site: 'camping', caravan_site: 'área de motorhome', hotel: 'hotel', motel: 'motel', guest_house: 'pousada', hostel: 'hostel', other: 'tipo não identificado' };
 const LEGACY_NOTE = { status: 'idle', records: [], message: '', collectedAt: null, meta: null, candidates: [] };
 
 const AMENITY_FILTERS = [
@@ -42,6 +40,7 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
   const [place, setPlace] = useState('');
   const [search, setSearch] = useState(LEGACY_NOTE);
   const [filters, setFilters] = useState({ kind: 'all', state: '', city: '', amenities: {}, tents: false, maxPrice: '', hasWebsite: false });
+  const [includeUnclassified, setIncludeUnclassified] = useState(false);
   const [work, setWork] = useState({ status: 'idle', rows: [] });
   const [selected, setSelected] = useState(null);
 
@@ -64,16 +63,12 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
     if (!STAY_TABS.includes(tab)) return;
     setSelected(null);
     setSearch({ ...LEGACY_NOTE, status: 'loading' });
+    const categoryParam = includeUnclassified ? `${tab},nao_classificada` : tab;
     const api = await fetchStays(choice
-      ? { lat: choice.lat, lon: choice.lon, name: choice.name, nameEn: choice.nameEn, label: choice.label, cc: choice.countryCode, rc: choice.regionCode, r: choice.radiusM, category: tab }
-      : { q: place, category: tab });
+      ? { lat: choice.lat, lon: choice.lon, name: choice.name, nameEn: choice.nameEn, label: choice.label, cc: choice.countryCode, rc: choice.regionCode, r: choice.radiusM, category: categoryParam }
+      : { q: place, category: categoryParam });
     if (api.status === 'aborted') return;
-    if (api.offline && LEGACY_TABS.includes(tab)) {
-      const r = await fetchOsmCampings(place, { category: tab });
-      setSearch({ ...LEGACY_NOTE, ...r, records: dedupeLodgings(r.records) });
-      return;
-    }
-    if (api.status === 'ambiguous') return setSearch({ ...LEGACY_NOTE, status: 'ambiguous', message: api.message, candidates: api.candidates });
+    if (api.status === 'ambiguous' || api.status === 'broad') return setSearch({ ...LEGACY_NOTE, status: 'ambiguous', message: api.message, candidates: api.candidates });
     if ((api.status === 'ok' || api.status === 'partial') && api.groups) {
       const records = flattenGroups(api.groups);
       return setSearch({ ...LEGACY_NOTE, status: records.length || api.categoryNotes?.length ? 'ok' : 'empty', records, collectedAt: api.collectedAt, meta: api, message: records.length ? '' : api.message });
@@ -196,6 +191,9 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
             <label className="check">
               <input type="checkbox" checked={filters.hasWebsite} onChange={(e) => setFilters((f) => ({ ...f, hasWebsite: e.target.checked }))} /> Com site
             </label>
+            <label className="check">
+              <input type="checkbox" checked={includeUnclassified} onChange={(e) => setIncludeUnclassified(e.target.checked)} /> Incluir locais sem tipo identificado (próxima pesquisa)
+            </label>
           </fieldset>
 
           {search.status === 'idle' && <p className="flights-note">Digite um lugar e toque em "{SEARCH_LABEL[tab]}".</p>}
@@ -208,7 +206,7 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
                 {search.candidates.map((c) => (
                   <li key={c.id}>
                     <span><b>{c.name}</b> · {[c.region, c.country].filter(Boolean).join(', ') || c.label}</span>
-                    <button className="btn-outline" onClick={() => runSearch(null, c)}>Pesquisar aqui</button>
+                    <button className="btn-outline" onClick={() => runSearch(null, c)}>{c.referencePoint ? `Pesquisar a ${Math.round(c.radiusM / 1000)} km do ponto de referência` : 'Pesquisar aqui'}</button>
                   </li>
                 ))}
               </ul>
@@ -226,37 +224,6 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
               />
               {['hotel', 'hostel', 'pousada'].includes(tab) && <PriceLinks tab={tab} place={place} />}
               {['ecovila', 'colaborativa'].includes(tab) && <CommunityLinks tab={tab} place={place} onNavigate={onNavigate} onWork={() => changeTab('work')} />}
-            </>
-          )}
-          {search.status === 'ok' && !search.meta && (
-            <>
-              <p role="status">
-                {camp.records.length} de {search.records.length} locais
-                {camp.hiddenUnknown > 0 && ` · ${camp.hiddenUnknown} ocultado(s) por falta de informação nos filtros usados`}
-                {search.skipped > 0 && ` · ${search.skipped} sem coordenadas válidas ignorado(s)`}.
-              </p>
-              {camp.records.length === 0 && <p>Nenhum local combina com os filtros. Afrouxe um filtro para ver mais.</p>}
-              <ul className="flex-list">
-                {camp.records.map((c) => (
-                  <li key={c.id}>
-                    <span>
-                      <b>{c.name ?? 'Local sem nome'}</b> · {KIND_NAME[c.kind] ?? 'hospedagem'}{c.stars ? ` · ${c.stars}★` : ''}
-                      {c.city ? ` · ${c.city}` : ''}
-                    </span>
-                    <small>
-                      {c.fee === 'free' ? 'Gratuito (segundo a fonte)' : c.fee === 'paid' ? 'Pago' : 'Preço não informado'}
-                    </small>
-                    <button className="btn-outline" onClick={() => setSelected({ kind: tab, item: c })}>
-                      Ver detalhes
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {tab !== 'camping' && <PriceLinks tab={tab} place={place} />}
-              <p className="flights-note">
-                Dados © OpenStreetMap contributors, licença ODbL, coletados em{' '}
-                {String(search.collectedAt).slice(0, 10)}. O OSM não garante que cada local esteja aberto hoje.
-              </p>
             </>
           )}
         </>

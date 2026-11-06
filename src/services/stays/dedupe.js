@@ -6,15 +6,18 @@
 // OU mesmo site (domínio próprio) + até 300 m; OU mesmo telefone + até 300 m; OU, sem coordenadas (Cadastur), mesma categoria,
 // nome idêntico e mesmo município. Nome parecido (≥ 0,6) a até 250 m só vira "possível duplicata": aparece, nunca some.
 import { haversineMeters } from '../geo.js';
+import { UNCLASSIFIED } from './categories.js';
 import { nameSimilarity, normText, phoneDigits, websiteDomain } from './unicode.js';
 
 const CELL = 0.003; // ~330 m de latitude
 const SOURCE_PRIORITY = { osm: 0, wikivoyage: 1, community: 2, cadastur: 3 };
+// "Não classificado" é compatível com qualquer categoria (só vale a categoria de quem tem evidência estruturada).
+const sameCategory = (a, b) => a.category === b.category || a.category === UNCLASSIFIED || b.category === UNCLASSIFIED;
 const completeness = (r) => ['website', 'phone', 'city', 'openingHours', 'address'].filter((f) => r[f]).length + (r.lat != null ? 2 : 0);
 
 function strongReason(a, b, dist, nameA, nameB) {
   if (a.provider === b.provider && a.sourceId === b.sourceId) return 'mesmo registro da fonte';
-  if (a.category !== b.category) return null;
+  if (!sameCategory(a, b)) return null;
   if (dist === null) {
     const ca = normText(a.city);
     const cb = normText(b.city);
@@ -63,7 +66,7 @@ export function groupDuplicates(records) {
         parent[rj] = ri;
         reasons.set(ri, [...(reasons.get(ri) ?? []), ...(reasons.get(rj) ?? []), why]);
       } else reasons.set(ri, [...(reasons.get(ri) ?? []), why]);
-    } else if (located && dist <= 250 && a.category === b.category && nameSimilarity(a.name, b.name) >= 0.6) {
+    } else if (located && dist <= 250 && sameCategory(a, b) && nameSimilarity(a.name, b.name) >= 0.6) {
       possible[i].add(b.id);
       possible[j].add(a.id);
     }
@@ -86,7 +89,7 @@ export function groupDuplicates(records) {
   records.forEach((r, i) => buckets.set(find(i), [...(buckets.get(find(i)) ?? []), i]));
   return [...buckets.entries()].map(([root, idxs]) => {
     const members = idxs.map((i) => records[i]);
-    const primary = [...members].sort((a, b) => (SOURCE_PRIORITY[a.provider] ?? 9) - (SOURCE_PRIORITY[b.provider] ?? 9) || completeness(b) - completeness(a) || String(a.id).localeCompare(String(b.id)))[0];
+    const primary = [...members].sort((a, b) => (a.category === UNCLASSIFIED ? 1 : 0) - (b.category === UNCLASSIFIED ? 1 : 0) || (SOURCE_PRIORITY[a.provider] ?? 9) - (SOURCE_PRIORITY[b.provider] ?? 9) || completeness(b) - completeness(a) || String(a.id).localeCompare(String(b.id)))[0];
     const sources = [];
     for (const m of members) for (const s of m.sources) if (!sources.some((x) => x.provider === s.provider && x.originalId === s.originalId)) sources.push(s);
     const prices = members.flatMap((m) => m.prices ?? []);

@@ -1,16 +1,18 @@
 // Fonte Wikivoyage (candidata): lê as listagens "Sleep" da página do destino na MediaWiki API pública.
-// Licença CC BY-SA 3.0 (confirmar por edição): atribuição obrigatória e compartilhamento pela mesma licença; por isso os
+// Licença CC BY-SA 4.0 (política vigente de Wikivoyage:Copyleft, verificada em 06/11/2026; conteúdo antigo pode estar em 3.0): atribuição obrigatória e compartilhamento pela mesma licença; por isso os
 // registros daqui NUNCA têm campos misturados com os do OpenStreetMap (ODbL): ficam separados, cada um com sua atribuição.
-// Limites: só a página principal do destino (bairros ficam em subpáginas); a categoria só vale quando o NOME do local traz a
-// palavra (hostel, camping, pousada, hotel...); o preço só vale com valor e moeda explícitos; a data do preço é a do campo
-// `lastedit` da listagem ou, na falta, a da revisão da página.
+// Limites: só a página principal do destino (bairros ficam em subpáginas); a listagem NÃO traz o tipo do local e o tipo não é
+// deduzido do nome: o registro fica "não classificado" (e só ganha categoria se for o mesmo local de um registro classificado
+// por fonte estruturada); o preço só vale com valor e moeda explícitos E com a data do campo `lastedit` da própria listagem:
+// a data da revisão da página NÃO prova a idade do preço (qualquer edição na página a atualiza), então sem `lastedit` o preço
+// fica indisponível (o texto original continua visível).
 import { validateCoordinates, haversineMeters } from '../../geo.js';
 import { createRateLimiter, HttpError, parseRetryAfter, withBackoff } from '../../datalayer/cache.js';
-import { categoryFromName } from '../categories.js';
+import { UNCLASSIFIED } from '../categories.js';
 import { parseStayCharge } from '../price.js';
 
 export const WIKIVOYAGE_SOURCE = Object.freeze({
-  id: 'wikivoyage', name: 'Wikivoyage', license: 'CC BY-SA 3.0', licenseUrl: 'https://creativecommons.org/licenses/by-sa/3.0/',
+  id: 'wikivoyage', name: 'Wikivoyage', license: 'CC BY-SA 4.0 (conteúdo antigo pode estar em 3.0)', licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
   attribution: 'Wikivoyage contributors', url: 'https://en.wikivoyage.org/',
 });
 export const DEFAULT_WIKIVOYAGE_API = 'https://en.wikivoyage.org/w/api.php';
@@ -54,7 +56,7 @@ const isoDate = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? '').trim()) && !N
 /** Listagens de hospedagem do wikitexto → registros. `revisionAt` = data da revisão da página (fallback do preço). */
 export function parseSleepListings(wikitext, { title, revisionAt, destination, collectedAt }) {
   const records = [];
-  const skipped = { noCoordinates: 0, outsideArea: 0, uncategorized: 0, noName: 0 };
+  const skipped = { noCoordinates: 0, outsideArea: 0, noName: 0 };
   let n = 0;
   for (const t of parseTemplates(wikitext)) {
     const isSleep = t.name === 'sleep' || (t.name === 'listing' && String(t.params.type ?? '').toLowerCase() === 'sleep');
@@ -65,17 +67,15 @@ export function parseSleepListings(wikitext, { title, revisionAt, destination, c
     const c = validateCoordinates(t.params.lat, t.params.long ?? t.params.lon);
     if (!c) { skipped.noCoordinates += 1; continue; }
     if (destination && haversineMeters(c, destination) > destination.radiusM * 1.5) { skipped.outsideArea += 1; continue; }
-    const category = categoryFromName(name);
-    if (!category) { skipped.uncategorized += 1; continue; }
     const pageUrl = `https://en.wikivoyage.org/wiki/${encodeURIComponent(String(title).replace(/ /g, '_'))}`;
-    const source = { provider: 'wikivoyage', name: WIKIVOYAGE_SOURCE.name, license: WIKIVOYAGE_SOURCE.license, licenseUrl: WIKIVOYAGE_SOURCE.licenseUrl, attribution: WIKIVOYAGE_SOURCE.attribution, copyrightUrl: WIKIVOYAGE_SOURCE.url, originalId: `${title}#${n}`, sourceUrl: pageUrl, collectedAt, lastEditedAt: isoDate(t.params.lastedit) ?? revisionAt ?? null };
+    const source = { provider: 'wikivoyage', name: WIKIVOYAGE_SOURCE.name, license: WIKIVOYAGE_SOURCE.license, licenseUrl: WIKIVOYAGE_SOURCE.licenseUrl, attribution: WIKIVOYAGE_SOURCE.attribution, copyrightUrl: WIKIVOYAGE_SOURCE.url, originalId: `${title}#${n}`, sourceUrl: pageUrl, collectedAt, lastEditedAt: isoDate(t.params.lastedit), pageRevisionAt: revisionAt ?? null };
     const priceText = plain(t.params.price);
     const parsed = parseStayCharge(priceText ?? '');
     const prices = parsed
-      ? [{ status: 'published', amount: parsed.amount, currency: parsed.currency, unit: parsed.unit, observedAt: source.lastEditedAt, text: parsed.text, source: { provider: 'wikivoyage', name: WIKIVOYAGE_SOURCE.name, license: WIKIVOYAGE_SOURCE.license, attribution: WIKIVOYAGE_SOURCE.attribution, url: pageUrl } }]
+      ? [{ status: 'published', amount: parsed.amount, currency: parsed.currency, unit: parsed.unit, observedAt: source.lastEditedAt /* só o `lastedit` da listagem */, text: parsed.text, source: { provider: 'wikivoyage', name: WIKIVOYAGE_SOURCE.name, license: WIKIVOYAGE_SOURCE.license, attribution: WIKIVOYAGE_SOURCE.attribution, url: pageUrl } }]
       : [];
     records.push({
-      id: `wikivoyage:${title}#${n}`, provider: 'wikivoyage', sourceId: `${title}#${n}`, name, category, osmKind: null, lat: c.lat, lon: c.lon,
+      id: `wikivoyage:${title}#${n}`, provider: 'wikivoyage', sourceId: `${title}#${n}`, name, category: UNCLASSIFIED, osmKind: null, lat: c.lat, lon: c.lon,
       address: plain(t.params.address), city: null, region: null, country: destination?.countryCode ?? null,
       website: httpUrl(t.params.url), phone: plain(t.params.phone), email: plain(t.params.email), stars: null, openingHours: null, access: null,
       amenities: {}, tents: null, caravans: null, fee: 'unknown', priceText, openStatus: 'unknown', prices, sources: [source],
@@ -93,7 +93,7 @@ export function createWikivoyageSource({
     describe: () => ({ ...WIKIVOYAGE_SOURCE, endpoint }),
     supports(categories, destination) {
       if (!destination.id && !destination.name) return { ok: false, reason: 'sem nome de destino (coordenadas informadas)' };
-      return categories.some((c) => ['camping', 'hostel', 'pousada', 'hotel'].includes(c)) ? { ok: true } : { ok: false, reason: 'categorias sem listagem no Wikivoyage' };
+      return categories.some((c) => ['camping', 'hostel', 'pousada', 'hotel', UNCLASSIFIED].includes(c)) ? { ok: true } : { ok: false, reason: 'categorias sem listagem no Wikivoyage' };
     },
     async search({ destination, categories }) {
       const title = destination.nameEn || destination.name;
@@ -111,12 +111,10 @@ export function createWikivoyageSource({
       if (!page || page.missing || !rev) return { records: [], rejected: 0, collectedAt, note: `Sem página "${title}" no Wikivoyage.` };
       const wikitext = rev.slots?.main?.content ?? rev.content ?? '';
       const { records, skipped, listings } = parseSleepListings(wikitext, { title: page.title ?? title, revisionAt: rev.timestamp ?? null, destination, collectedAt });
-      const wanted = new Set(categories);
-      const kept = records.filter((r) => wanted.has(r.category));
       const parts = [];
-      if (skipped.uncategorized) parts.push(`${skipped.uncategorized} sem tipo identificável no nome`);
       if (skipped.noCoordinates) parts.push(`${skipped.noCoordinates} sem coordenadas`);
-      return { records: kept, rejected: listings - records.length, collectedAt, note: parts.length ? `Wikivoyage: ${parts.join('; ')} (não exibidos).` : null };
+      if (skipped.outsideArea) parts.push(`${skipped.outsideArea} fora da área`);
+      return { records, rejected: listings - records.length, collectedAt, listings, note: parts.length ? `Wikivoyage: ${parts.join('; ')} (não exibidos).` : null };
     },
   };
 }

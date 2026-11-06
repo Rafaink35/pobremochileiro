@@ -1,8 +1,11 @@
 // Categorias do Stay Finder. "Trabalho em troca" e "Au pair" continuam como abas próprias da tela (não são buscas de local).
 export const STAY_CATEGORIES = Object.freeze(['camping', 'hostel', 'pousada', 'ecovila', 'colaborativa', 'hotel']);
+// Local sem evidência estruturada de tipo (ex.: listagem do Wikivoyage, que não traz o tipo). Só aparece se for pedido
+// explicitamente, ou quando é o MESMO local de um resultado classificado (aí vale a categoria da fonte estruturada).
+export const UNCLASSIFIED = 'nao_classificada';
 
 export const CATEGORY_LABEL = Object.freeze({
-  camping: 'Camping', hostel: 'Hostel', pousada: 'Pousada', ecovila: 'Ecovila', colaborativa: 'Hospedagem colaborativa', hotel: 'Hotel',
+  camping: 'Camping', hostel: 'Hostel', pousada: 'Pousada', ecovila: 'Ecovila', colaborativa: 'Hospedagem colaborativa', hotel: 'Hotel', nao_classificada: 'Tipo não identificado',
 });
 
 // Valor da tag `tourism` do OpenStreetMap por categoria. Ecovila e hospedagem colaborativa NÃO têm tag confiável no OSM:
@@ -24,22 +27,9 @@ export const COMMUNITY_ONLY_CATEGORIES = Object.freeze(['ecovila', 'colaborativa
 export function parseCategories(input) {
   const list = (Array.isArray(input) ? input : String(input ?? '').split(',')).map((c) => String(c).trim()).filter(Boolean);
   if (!list.length) return [...STAY_CATEGORIES];
-  return list.every((c) => STAY_CATEGORIES.includes(c)) ? [...new Set(list)] : null;
+  return list.every((c) => STAY_CATEGORIES.includes(c) || c === UNCLASSIFIED) ? [...new Set(list)] : null;
 }
 
 // Tipo usado pela tela já existente (PlaceDetail, filtros, planejador): mantém a compatibilidade.
-const LEGACY_KIND = { camping: 'camp_site', hostel: 'hostel', pousada: 'guest_house', hotel: 'hotel', ecovila: 'camp_site', colaborativa: 'guest_house' };
+const LEGACY_KIND = { camping: 'camp_site', hostel: 'hostel', pousada: 'guest_house', hotel: 'hotel', ecovila: 'camp_site', colaborativa: 'guest_house', nao_classificada: 'other' };
 export const legacyKindOf = (category, osmKind) => osmKind ?? LEGACY_KIND[category] ?? 'hotel';
-
-// Categoria a partir de palavra explícita no NOME do próprio estabelecimento (usada só para fontes sem tipo, como o Wikivoyage).
-// Nunca usada para ecovila ou hospedagem colaborativa.
-const NAME_HINTS = [
-  ['hostel', /(hostel|hostal|albergue|auberge de jeunesse|ユースホステル|ホステル|青年旅舍|хостел)/iu],
-  ['camping', /(camping|campsite|campground|caravan park|キャンプ場|露营|кемпинг)/iu],
-  ['pousada', /(pousada|guest ?house|pens[aã]o|pension|posada|bed (and|&) breakfast|b&b|ゲストハウス|民宿|гостевой дом)/iu],
-  ['hotel', /(hotel|motel|ホテル|酒店|旅馆|отель)/iu],
-];
-export function categoryFromName(name) {
-  const n = String(name ?? '');
-  return NAME_HINTS.find(([, re]) => re.test(n))?.[0] ?? null;
-}

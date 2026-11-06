@@ -32,11 +32,11 @@ export const CITIES = {
     ],
   },
   santiago: {
-    // Ambíguo: Santiago (Chile) e Santiago de Compostela (Espanha) com importância parecida.
+    // Ambíguo: Santiago (Chile) e Santiago (Costa Rica) com a mesma importância, como na resposta real do Nominatim.
     query: 'Santiago',
     nominatim: [
-      place(1003, 'Santiago', -33.4489, -70.6693, { country: 'Chile', countryCode: 'CL', nameEn: 'Santiago', importance: 0.75 }),
-      place(1004, 'Santiago de Compostela', 42.8805, -8.5457, { country: 'España', countryCode: 'ES', nameEn: 'Santiago de Compostela', importance: 0.7 }),
+      place(1003, 'Santiago', -33.4489, -70.6693, { country: 'Chile', countryCode: 'CL', nameEn: 'Santiago', importance: 0.729 }),
+      place(1004, 'Santiago', 9.869, -83.798, { country: 'Costa Rica', countryCode: 'CR', nameEn: 'Santiago', importance: 0.729, kind: 'village' }),
     ],
     elements: [
       el(21, { tourism: 'hostel', name: 'Hostal Ejemplo Bellavista', charge: '15000 CLP per person per night' }, -33.4300, -70.6350),

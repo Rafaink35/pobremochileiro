@@ -24,7 +24,7 @@ function Row({ label, children }) {
   );
 }
 
-const KIND_LABEL = { camp_site: 'Camping', caravan_site: 'Área de motorhome/caravana', hotel: 'Hotel', motel: 'Motel', guest_house: 'Pousada ou casa de hóspedes', hostel: 'Hostel' };
+const KIND_LABEL = { camp_site: 'Camping', caravan_site: 'Área de motorhome/caravana', hotel: 'Hotel', motel: 'Motel', guest_house: 'Pousada ou casa de hóspedes', hostel: 'Hostel', other: 'Hospedagem (tipo não identificado)' };
 
 function CampingInfo({ c }) {
   const classified = c.pricing && c.pricing.class !== 'unavailable' ? describePricing(c.pricing) : null;

@@ -55,14 +55,20 @@ describe('leitura de preço de texto de fonte', () => {
     ['R$ 280 por quarto por noite', { amount: 280, currency: 'BRL', unit: { basis: 'room', period: 'night' } }],
     ['1,500 USD per room per night', { amount: 1500, currency: 'USD', unit: { basis: 'room', period: 'night' } }],
     ['฿ 400 per night', { amount: 400, currency: 'THB', unit: null }], // sem pessoa/quarto: unidade incompleta
+    ['R$192', { amount: 192, currency: 'BRL', unit: null }], // texto real do Wikivoyage: valor e moeda, sem unidade
   ])('lê %s', (text, expected) => {
     expect(parseStayCharge(text)).toMatchObject(expected);
   });
-  it.each(['20-30 EUR', 'dorm 15 EUR / private 40 EUR', '$20', '¥3000', '20', 'grátis', '', null, 'EUR', 'XYZ 20'])('recusa o ambíguo ou incompleto: %s', (text) => {
+  it.each([
+    '20-30 EUR', 'dorm 15 EUR / private 40 EUR', '$20', '¥3000', '20', 'grátis', '', null, 'EUR', 'XYZ 20',
+    // textos reais do Wikivoyage (Paraty, 06/11/2026): qualificadores mudam o sentido do número
+    'From R$115', 'From R$300 including breakfast', 'R$200-340 (check out high/low season prices)', 'about 20 EUR', 'até R$ 80', 'desde R$ 60 por noite',
+  ])('recusa o ambíguo ou incompleto: %s', (text) => {
     expect(parseStayCharge(text)).toBeNull();
   });
-  it('pessoa e quarto no mesmo texto deixam a unidade desconhecida', () => {
-    expect(parseStayCharge('20 EUR per person or room per night').unit).toBeNull();
+  it('pessoa e quarto no mesmo texto: ambíguo, não vira preço', () => {
+    expect(parseStayCharge('20 EUR per person or room per night')).toBeNull();
+    expect(parseStayCharge('20 EUR per person per room per night').unit).toBeNull(); // sem "ou": a unidade fica desconhecida
   });
 });
 

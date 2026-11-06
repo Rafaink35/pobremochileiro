@@ -6,6 +6,7 @@ import { destinationFrom, MAX_RADIUS_M, MIN_RADIUS_M, RESOLVE_STATUS } from './d
 import { groupDuplicates } from './dedupe.js';
 import { rankStays } from './rank.js';
 import { hasName, normalizeLimit, selectForDisplay } from './display.js';
+import { countUnnamedInstances, countUnnamedRecords, RULE_SET_VERSION, structureGroupReasons } from './contract.js';
 import { haversineMeters, validateCoordinates } from '../geo.js';
 
 const withTimeout = (promise, ms) => {
@@ -27,19 +28,28 @@ const CATEGORY_NOTE = {
  * classificação de preço e ranking, e seleção do que é exibido (P2). É a MESMA função usada pela pesquisa e pelo script de análise
  * local (`scripts/analyze-overpass-json.mjs`), para que a análise exercite o código real.
  */
-export function assembleResults({ records, categories, center, limit, now = new Date() }) {
+export function assembleResults({ records, categories, center, limit, now = new Date(), additiveFields = true }) {
   const wanted = new Set(categories);
   // Registros "não classificados" entram na deduplicação (podem ser o mesmo local de um registro classificado) e só
   // aparecem sozinhos se a categoria "não classificada" foi pedida.
-  const allGroups = groupDuplicates(records.filter((r) => wanted.has(r.category) || r.category === UNCLASSIFIED));
+  const input = records.filter((r) => wanted.has(r.category) || r.category === UNCLASSIFIED);
+  const allGroups = groupDuplicates(input);
   const unclassifiedHidden = allGroups.filter((g) => !wanted.has(g.category)).length;
-  const grouped = allGroups.filter((g) => wanted.has(g.category)).map((g) => ({ ...g, distanceM: g.lat != null ? Math.round(haversineMeters(center, { lat: g.lat, lon: g.lon })) : null }));
+  // E1: `groupReasonDetails` só ACRESCENTA a forma estruturada dos motivos já registrados; não toca em nenhum campo existente.
+  const grouped = allGroups.filter((g) => wanted.has(g.category)).map((g) => ({
+    ...g,
+    distanceM: g.lat != null ? Math.round(haversineMeters(center, { lat: g.lat, lon: g.lon })) : null,
+    ...(additiveFields && { groupReasonDetails: structureGroupReasons(g.groupReasons) }),
+  }));
   // P3: registros sem nome seguem no processamento (agrupamento e classificação de preço), mas não entram na lista nem no ranking.
   const named = grouped.filter(hasName);
   const unnamedItems = grouped.filter((g) => !hasName(g));
   const ranking = rankStays(named, now);
   // P2: no máximo `limit` resultados no total (padrão 100), por proximidade; "mostrar mais" pede um limite maior.
-  const view = selectForDisplay(ranking, unnamedItems, normalizeLimit(limit), now);
+  const baseView = selectForDisplay(ranking, unnamedItems, normalizeLimit(limit), now);
+  // E1: `unnamed.instances` e `unnamed.records` ao lado de `unnamed.count` (e de `counts.unnamedHidden`), que não mudam.
+  const instances = countUnnamedInstances(input);
+  const view = additiveFields ? { ...baseView, unnamed: { ...baseView.unnamed, instances, records: countUnnamedRecords(instances) } } : baseView;
   return { grouped, named, unnamedItems, ranking, view, unclassifiedHidden };
 }
 
@@ -47,7 +57,7 @@ export function assembleResults({ records, categories, center, limit, now = new 
  * Tempo máximo por fonte: `timeoutMs` (25 s) ou o valor de `sourceTimeoutMs[id]` (ex.: Overpass, 75 s). As fontes rodam em paralelo,
  * então o tempo total da pesquisa (depois de localizar o destino) é o maior desses limites.
  */
-export function createStaySearch({ resolver, sources, cache = createStaleCache(), breaker = createBreaker(), now = () => new Date(), timeoutMs = 25_000, sourceTimeoutMs = {}, resolveTimeoutMs = 25_000 }) {
+export function createStaySearch({ resolver, sources, cache = createStaleCache(), breaker = createBreaker(), now = () => new Date(), timeoutMs = 25_000, sourceTimeoutMs = {}, resolveTimeoutMs = 25_000, additiveFields = true }) {
   async function runSource(source, { destination, categories }) {
     const meta = source.describe();
     const base = { id: meta.id, name: meta.name, license: meta.license, licenseUrl: meta.licenseUrl ?? null, attribution: meta.attribution, url: meta.url ?? null };
@@ -109,7 +119,7 @@ export function createStaySearch({ resolver, sources, cache = createStaleCache()
 
       const center = { lat: destination.lat, lon: destination.lon };
       const records = usable.flatMap((r) => r.records);
-      const { grouped, named, ranking, view, unnamedItems, unclassifiedHidden } = assembleResults({ records, categories, center, limit: rawLimit, now: now() });
+      const { grouped, named, ranking, view, unnamedItems, unclassifiedHidden } = assembleResults({ records, categories, center, limit: rawLimit, now: now(), additiveFields });
       const failed = results.filter((r) => r.status === 'failed' || r.status === 'stale').length;
       const emptyMessage = !named.length && unnamedItems.length
         ? `As fontes só trazem ${unnamedItems.length} local(is) sem nome nesta área: eles não são listados porque não dá para identificá-los.`
@@ -122,6 +132,7 @@ export function createStaySearch({ resolver, sources, cache = createStaleCache()
         unnamed: view.unnamed,
         rankKey: ranking.rankKey, rankNotes: ranking.notes,
         counts: { ...view.counts, duplicatesGrouped: grouped.reduce((n, g) => n + g.groupSize - 1, 0), possibleDuplicates: grouped.filter((g) => g.possibleDuplicates.length).length, unclassifiedHidden },
+        ...(additiveFields && { ruleSetVersion: RULE_SET_VERSION }), // E1: aditivo; não altera nenhum campo existente
       };
     },
   };

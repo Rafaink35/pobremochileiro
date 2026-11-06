@@ -9,7 +9,13 @@ import { TripResultCard } from '../components/TripResultCard.jsx';
 
 const PREFERENCES = PREFERENCE_PATTERNS.map(([name]) => name);
 const brl = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const EMPTY_FORM = { budget: '', origin: '', days: '', people: '1', preferences: [], hasCar: 'unknown' };
+const MODE_CHOICES = [['bus', 'Ônibus'], ['flight', 'Voo'], ['train', 'Trem'], ['ferry', 'Balsa']];
+const LODGING_CHOICES = [['hostel', 'Hostel'], ['guesthouse', 'Pousada'], ['hotel', 'Hotel'], ['camping', 'Camping']];
+const EMPTY_FORM = {
+  budget: '', budgetScope: 'total', origin: '', days: '', people: '1', startDate: '', preferences: [], hasCar: 'unknown',
+  modes: MODE_CHOICES.map(([m]) => m), lodgingKinds: [],
+};
+const today = () => new Date().toISOString().slice(0, 10);
 
 export function Discover({ setDraft, onNavigate }) {
   const [text, setText] = useState('');
@@ -18,7 +24,8 @@ export function Discover({ setDraft, onNavigate }) {
   const [outcome, setOutcome] = useState(null);
   const empty = isEmptyKnowledgeBase(knowledgeBase);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  const togglePref = (p) => setForm((f) => ({ ...f, preferences: f.preferences.includes(p) ? f.preferences.filter((x) => x !== p) : [...f.preferences, p] }));
+  const toggleIn = (key) => (value) => setForm((f) => ({ ...f, [key]: f[key].includes(value) ? f[key].filter((x) => x !== value) : [...f[key], value] }));
+  const togglePref = toggleIn('preferences');
 
   const interpret = () => {
     const r = parseTripRequest(text, { knownPlaces: knownOrigins(knowledgeBase) });
@@ -39,6 +46,7 @@ export function Discover({ setDraft, onNavigate }) {
     setOutcome(
       recommend({
         budget: Number(String(form.budget).replace(/\./g, '').replace(',', '.')),
+        budgetScope: form.budgetScope, startDate: form.startDate || null, modes: form.modes, lodgingKinds: form.lodgingKinds,
         origin: form.origin, days: Number(form.days), people: Number(form.people) || 1, preferences: form.preferences,
         hasCar: form.hasCar === 'yes' ? true : form.hasCar === 'no' ? false : null,
       }, knowledgeBase),
@@ -47,7 +55,7 @@ export function Discover({ setDraft, onNavigate }) {
 
   const send = (result) => {
     const plan = planFromResult(result, outcome.request);
-    setDraft((old) => ({ ...old, tripName: plan.tripName, origin: plan.origin, days: plan.days, budget: plan.budget, items: [...(old.items ?? []), ...plan.items] }));
+    setDraft((old) => ({ ...old, tripName: plan.tripName, origin: plan.origin, days: plan.days, budget: plan.budget, startDate: plan.startDate || old.startDate || '', items: [...(old.items ?? []), ...plan.items] }));
     onNavigate('Planejador');
   };
 
@@ -58,7 +66,7 @@ export function Discover({ setDraft, onNavigate }) {
           <p className="eyebrow">DINHEIRO CONTADO, SEM CHUTE</p>
           <h1>Descubra até onde seu <span>dinheiro leva você.</span></h1>
           <p className="section-subtitle">
-            Diga quanto tem, de onde sai e quantos dias. Só aparecem destinos com dados reais, e cada valor mostra a fonte e a data.
+            Diga quanto tem, de onde sai e quantos dias. Cada valor mostra a fonte, a data e se é confirmado ou estimativa.
           </p>
         </div>
         <div className="page-doodle" aria-hidden="true"><Compass size={32} /></div>
@@ -66,10 +74,10 @@ export function Discover({ setDraft, onNavigate }) {
 
       {empty && (
         <div className="empty-state" role="status">
-          <h3>A base de viagens ainda está vazia</h3>
+          <h3>A base de viagens está vazia</h3>
           <p>
-            Ainda não há destinos, preços e fontes cadastrados. Para não mostrar oferta inventada, esta tela não exibe resultados até que dados reais
-            (com fonte, licença e data) sejam importados. Enquanto isso, você pode montar o plano manualmente.
+            Não há destinos, preços e fontes cadastrados. Para não mostrar oferta inventada, esta tela não exibe resultados sem dados
+            (com fonte, licença e data). Enquanto isso, você pode montar o plano manualmente.
           </p>
           <button className="btn-primary" onClick={() => onNavigate('Planejador')}>Ir para o planejador</button>
         </div>
@@ -93,10 +101,17 @@ export function Discover({ setDraft, onNavigate }) {
       </div>
 
       <form onSubmit={submit} className="flights-form trip-form">
-        <label>Orçamento total (R$)<input inputMode="decimal" required value={form.budget} onChange={set('budget')} placeholder="Ex.: 600" /></label>
+        <label>Orçamento (R$)<input inputMode="decimal" required value={form.budget} onChange={set('budget')} placeholder="Ex.: 600" /></label>
+        <label>O orçamento é
+          <select value={form.budgetScope} onChange={set('budgetScope')}>
+            <option value="total">Total do grupo</option>
+            <option value="person">Por pessoa</option>
+          </select>
+        </label>
         <label>Origem<input required value={form.origin} onChange={set('origin')} placeholder="Ex.: Rio de Janeiro" /></label>
         <label>Dias<input inputMode="numeric" required value={form.days} onChange={set('days')} placeholder="Ex.: 4" /></label>
         <label>Pessoas<input inputMode="numeric" value={form.people} onChange={set('people')} /></label>
+        <label>Data de saída (opcional)<input type="date" min={today()} value={form.startDate} onChange={set('startDate')} /></label>
         <label>Tem carro?
           <select value={form.hasCar} onChange={set('hasCar')}>
             <option value="unknown">Não informar (carro não será considerado)</option>
@@ -104,6 +119,18 @@ export function Discover({ setDraft, onNavigate }) {
             <option value="no">Não</option>
           </select>
         </label>
+        <fieldset className="trip-prefs">
+          <legend>Como prefere chegar</legend>
+          {MODE_CHOICES.map(([m, label]) => (
+            <label key={m} className="check"><input type="checkbox" checked={form.modes.includes(m)} onChange={() => toggleIn('modes')(m)} /> {label}</label>
+          ))}
+        </fieldset>
+        <fieldset className="trip-prefs">
+          <legend>Tipo de hospedagem (sem marcar = a mais barata)</legend>
+          {LODGING_CHOICES.map(([k, label]) => (
+            <label key={k} className="check"><input type="checkbox" checked={form.lodgingKinds.includes(k)} onChange={() => toggleIn('lodgingKinds')(k)} /> {label}</label>
+          ))}
+        </fieldset>
         <fieldset className="trip-prefs">
           <legend>Preferências</legend>
           {PREFERENCES.map((p) => (
@@ -119,7 +146,8 @@ export function Discover({ setDraft, onNavigate }) {
       {outcome?.status === RECOMMEND_STATUS.OK && (
         <>
           <p role="status">
-            {outcome.results.length} destino(s) para {brl(outcome.request.budget)} saindo de {outcome.origin}.
+            {outcome.results.length} destino(s) para {brl(outcome.request.budget)} saindo de {outcome.origin}
+            {outcome.request.startDate ? ` em ${outcome.request.startDate.split('-').reverse().join('/')}` : ''}.
             {outcome.hidden.over > 0 && ` ${outcome.hidden.over} destino(s) acima do orçamento foram ocultados.`}
           </p>
           <p className="data-note">Premissas: {outcome.assumptions.join('; ')}.</p>

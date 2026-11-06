@@ -7,6 +7,17 @@ import { COST_STATUS, planSummary, removeStay, TRANSPORT_STATUS, updateStay } fr
 export const PLAN_CATEGORIES = ['Transporte', 'Hospedagem', 'Comida', 'Passeios', 'Extras'];
 
 const brl = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+// Selo do valor de cada item: mostra de onde veio o número (nada de estimativa passando por preço confirmado).
+const STATUS_BADGE = {
+  confirmed: ['confirmado', 'confirmed'],
+  published: ['publicado, não reconfirmado', 'published'],
+  estimate: ['estimativa', 'estimate'],
+  stale: ['desatualizado (conta como estimativa)', 'estimate'],
+};
+function valueBadge(it) {
+  if (!String(it.amount ?? '').trim()) return ['valor não informado', 'unknown'];
+  return STATUS_BADGE[it.status] ?? ['informado por você', 'manual'];
+}
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 // Lista de itens da viagem + total contra o limite. Os links "Reservar" vêm de src/data/partners.js.
@@ -15,12 +26,16 @@ export function TripPlan({ draft, setDraft }) {
   const setItems = (fn) => setDraft((old) => ({ ...old, items: fn(old.items || []) }));
 
   const add = (category) => setItems((list) => [...list, { id: newId(), category, label: '', amount: '' }]);
+  // Ao ajustar o valor à mão, ele passa a ser "informado por você" (deixa de ser estimativa da descoberta).
   const update = (id, field, value) =>
-    setItems((list) => list.map((it) => (it.id === id ? { ...it, [field]: value } : it)));
+    setItems((list) => list.map((it) => {
+      if (it.id !== id) return it;
+      if (field !== 'amount') return { ...it, [field]: value };
+      return { ...it, amount: value, status: 'manual', adjusted: it.adjusted || Boolean(it.status && it.status !== 'manual') };
+    }));
   const remove = (id) => setItems((list) => list.filter((it) => it.id !== id));
 
   const summary = planSummary(draft);
-  const total = summary.knownTotal;
   const stays = draft.stays ?? [];
   const setDraftStays = (fn) => setDraft((old) => fn(old));
 
@@ -62,6 +77,10 @@ export function TripPlan({ draft, setDraft }) {
                 onChange={(e) => update(it.id, 'amount', e.target.value)}
                 placeholder="R$ 0,00"
               />
+              {(() => {
+                const [text, kind] = valueBadge(it);
+                return <span className={`plan-badge badge-${kind}`}>{text}{it.adjusted ? ' (ajustado)' : ''}</span>;
+              })()}
               {link && (
                 <a href={link.url} target="_blank" rel="noopener noreferrer sponsored" className="plan-reserve">
                   {source ? `Comprar no ${source.name}` : link.search ? `Ver no ${link.name}` : 'Reservar'} <ArrowUpRight size={13} aria-hidden="true" />
@@ -141,7 +160,7 @@ export function TripPlan({ draft, setDraft }) {
         </div>
       )}
 
-      <PlanTotal summary={summary} total={total} />
+      <PlanTotal summary={summary} />
     </section>
   );
 }
@@ -178,27 +197,37 @@ function costLabel(cost) {
   }
 }
 
-function PlanTotal({ summary, total }) {
-  const { limit, unknown, complete, empty } = summary;
+const CLAIM = {
+  confirmed: 'Todos os valores são confirmados ou informados por você.',
+  estimated: 'Há estimativas no total: o gasto real pode ser diferente.',
+  incomplete: 'Há itens sem valor: o custo real será maior ou igual ao mínimo.',
+};
+
+function PlanTotal({ summary }) {
+  const { limit, unknown, complete, empty, knownTotal, confirmedTotal, estimatedTotal, contingency, minimumTotal, fit, finalCostClaim } = summary;
   if (empty) return null;
-  const over = limit !== null && total > limit;
-  const cls = limit === null ? '' : over ? ' over' : complete ? ' ok' : '';
+  const cls = limit === null ? '' : fit === 'over' ? ' over' : fit === 'within' ? ' ok' : '';
   return (
     <div className={`plan-total${cls}`} role="status">
       <span>{complete ? 'Total do plano' : 'Total parcial (só valores informados)'}</span>
-      <strong>{brl(total)}</strong>
+      <strong>{brl(knownTotal)}</strong>
+      <dl className="trip-totals">
+        <div><dt>Confirmado ou informado por você</dt><dd>{brl(confirmedTotal)}</dd></div>
+        <div><dt>Estimado</dt><dd>{brl(estimatedTotal)}</dd></div>
+        <div><dt>Reserva para imprevistos ({contingency.pct}%)</dt><dd>{contingency.amount !== null ? brl(contingency.amount) : 'não calculada'}</dd></div>
+        <div><dt>Custo mínimo (com reserva)</dt><dd><b>{brl(minimumTotal)}</b></dd></div>
+      </dl>
+      <small>{CLAIM[finalCostClaim]}</small>
       {!complete && (
         <small>
           {unknown.length} item(ns) sem valor ou sem cálculo: {unknown.slice(0, 4).join('; ')}
-          {unknown.length > 4 ? '…' : ''}. O custo real será maior ou igual a esse total.
+          {unknown.length > 4 ? '…' : ''}.
         </small>
       )}
       {limit === null && <small>Defina o orçamento acima para comparar.</small>}
-      {limit !== null && over && <small>Já passa do limite em {brl(total - limit)}, mesmo sem os itens que faltam.</small>}
-      {limit !== null && !over && complete && <small>Cabe no seu limite. Sobram {brl(limit - total)}.</small>}
-      {limit !== null && !over && !complete && (
-        <small>Ainda não dá para dizer se cabe no limite: faltam valores.</small>
-      )}
+      {limit !== null && fit === 'over' && <small>O custo mínimo passa do limite em {brl(minimumTotal - limit)}, mesmo sem os itens que faltam.</small>}
+      {limit !== null && fit === 'within' && <small>Cabe no seu limite com a reserva. Sobram {brl(limit - minimumTotal)}.</small>}
+      {limit !== null && fit === 'within_partial' && <small>Cabe até aqui, mas ainda não dá para garantir: faltam valores.</small>}
     </div>
   );
 }

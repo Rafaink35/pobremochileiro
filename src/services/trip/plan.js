@@ -10,6 +10,7 @@ export function planFromResult(result, request) {
       category: PLAN_CATEGORY[l.category] ?? 'Extras',
       label: `${l.label}${suffix}`,
       amount: t.amount !== null ? t.amount.toFixed(2).replace('.', ',') : '',
+      status: t.status, // confirmed | published | estimate | stale | unknown: o planejador mantém o selo até o usuário editar o valor
       url: l.price.referenceUrl ?? '',
       source: l.price.origin?.name ?? 'Motor de recomendação',
     };
@@ -19,6 +20,7 @@ export function planFromResult(result, request) {
     origin: request.origin,
     days: String(request.days),
     budget: String(request.budget).replace('.', ','),
+    startDate: request.startDate ?? '',
     items,
   };
 }

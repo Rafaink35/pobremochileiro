@@ -2,6 +2,8 @@
 // separados em "conhecido" e "não informado/não calculado". O rascunho é local ao navegador do próprio
 // usuário (um dispositivo, sem sincronização) — não é persistência multiusuário.
 import { parseBRL } from '../../api/fx.js';
+import { computeBudget } from '../trip/budget.js';
+import { createPrice, unknownPrice } from '../trip/price.js';
 
 export const COST_STATUS = Object.freeze({
   FREE: 'free', // gratuito segundo a fonte
@@ -72,31 +74,64 @@ export const updateStay = (draft, id, patch) => ({
   stays: (draft.stays ?? []).map((s) => (s.id === id ? { ...s, ...patch } : s)),
 });
 
+/** Situação do valor de um item do plano. Sem `status` (ou "manual") = valor digitado por você. */
+export const ITEM_STATUS = Object.freeze({ MANUAL: 'manual', CONFIRMED: 'confirmed', PUBLISHED: 'published', ESTIMATE: 'estimate', STALE: 'stale', UNKNOWN: 'unknown' });
+
+const PLAN_UNIT = { basis: 'group', period: 'once' };
+const CATEGORY_KEY = { Transporte: 'transport', Hospedagem: 'lodging', Comida: 'food', Passeios: 'activities', Extras: 'other' };
+
+// Valor do item como preço do motor de orçamento: estimativa e desatualizado contam como ESTIMADO; o resto como conhecido.
+function itemPrice(item, amount, nowIso) {
+  const estimated = item.status === ITEM_STATUS.ESTIMATE || item.status === ITEM_STATUS.STALE;
+  if (estimated) return createPrice({ status: 'estimate', amount, currency: 'BRL', unit: PLAN_UNIT, note: 'Estimativa vinda da descoberta (não é preço confirmado).' });
+  return createPrice({
+    status: 'confirmed', amount, currency: 'BRL', unit: PLAN_UNIT, collectedAt: nowIso,
+    origin: { sourceId: 'plano', name: item.status === ITEM_STATUS.PUBLISHED || item.status === ITEM_STATUS.CONFIRMED ? 'Descoberta' : 'Informado por você' },
+  });
+}
+
 /**
- * Resumo do plano. O total só soma valores efetivamente informados em BRL; tudo o que é desconhecido
- * entra em `unknown` e impede tratar o total como completo.
+ * Resumo do plano, calculado pelo MESMO motor de orçamento da tela Descubra (`computeBudget`): confirmado/informado,
+ * estimado, reserva de imprevistos, mínimo e se cabe no limite. Mantém os campos antigos:
+ * `knownTotal` = tudo que tem número (confirmado + informado + estimado); `unknown` = o que ficou sem valor.
  */
-export function planSummary(draft) {
-  let knownTotal = 0;
-  const unknown = [];
-  for (const it of draft.items ?? []) {
+export function planSummary(draft, now = new Date()) {
+  const lines = [];
+  for (const [i, it] of (draft.items ?? []).entries()) {
+    const label = it.label?.trim() || it.category;
     const n = parseBRL(it.amount ?? '');
-    if (Number.isFinite(n)) knownTotal += n;
-    else unknown.push(it.label?.trim() || it.category);
+    lines.push({
+      key: `item-${i}`, category: CATEGORY_KEY[it.category] ?? 'other', label, essential: false,
+      price: Number.isFinite(n) ? itemPrice(it, n, now.toISOString()) : unknownPrice(), reasonIfUnknown: 'valor não informado',
+    });
   }
   for (const s of draft.stays ?? []) {
     if (s.cost.status === COST_STATUS.FREE || s.cost.status === COST_STATUS.EXCHANGE) continue;
-    unknown.push(`Hospedagem: ${s.name}`);
+    lines.push({ key: `stay-${s.id}`, category: 'lodging', label: `Hospedagem: ${s.name}`, essential: false, price: unknownPrice(), reasonIfUnknown: 'valor não informado' });
   }
   for (const s of draft.stays ?? []) {
-    if (s.transport.status !== TRANSPORT_STATUS.CONFIRMED) unknown.push(`Transporte até ${s.name}`);
+    if (s.transport.status !== TRANSPORT_STATUS.CONFIRMED) {
+      lines.push({ key: `transport-${s.id}`, category: 'transport', label: `Transporte até ${s.name}`, essential: false, price: unknownPrice(), reasonIfUnknown: 'transporte não calculado' });
+    }
   }
   const limit = parseBRL(draft.budget ?? '');
+  const hasLimit = Number.isFinite(limit) && limit > 0;
+  const b = computeBudget(
+    { budget: hasLimit ? limit : null, currency: 'BRL', people: 1, rooms: 1, nights: 1, days: 1, legs: 1, lines, requiredCategories: [], contingencyPct: 10 },
+    now,
+  );
+  const unknown = b.pending.map((p) => p.label);
   return {
-    knownTotal,
+    knownTotal: Math.round((b.knownTotal + b.estimatedTotal) * 100) / 100,
+    confirmedTotal: b.knownTotal,
+    estimatedTotal: b.estimatedTotal,
+    contingency: b.contingency,
+    minimumTotal: b.minimumTotal,
+    fit: b.fit,
+    finalCostClaim: b.finalCostClaim,
     unknown,
     empty: (draft.items ?? []).length + (draft.stays ?? []).length === 0,
     complete: unknown.length === 0,
-    limit: Number.isFinite(limit) && limit > 0 ? limit : null,
+    limit: hasLimit ? limit : null,
   };
 }

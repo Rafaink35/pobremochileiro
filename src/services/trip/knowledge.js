@@ -76,6 +76,7 @@ export function loadKnowledgeBase(raw) {
     else {
       kb.destinations.push({
         id, name, region: text(d.region), state: text(d.state), description: text(d.description), tags: tags(d.tags),
+        country: text(d.country), localCurrency: /^[A-Za-z]{3}$/.test(d.currency ?? '') ? d.currency.toUpperCase() : null, timezone: text(d.timezone),
         lat: Number.isFinite(d.lat) ? d.lat : null, lon: Number.isFinite(d.lon) ? d.lon : null,
         dailyFood: price(`destino ${id} (alimentação)`, d.dailyFood),
         localTransportDaily: price(`destino ${id} (deslocamento local)`, d.localTransportDaily),

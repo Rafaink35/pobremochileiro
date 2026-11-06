@@ -231,3 +231,11 @@ a.route-link:hover { background: #f6f0e4; border-radius: 12px; }
 .plan-booking { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 0.85rem; }
 .plan-booking a { color: #b94e32; font-weight: 700; }
 @media (max-width: 600px) { .plan-meta { grid-template-columns: 1fr; } }
+
+/* Selos de situação do valor (plano e descoberta) */
+.plan-badge { font-size: 0.74rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #f0ebdd; color: #173b30; white-space: nowrap; align-self: center; }
+.plan-badge.badge-confirmed, .plan-badge.badge-published { background: #e3f1e0; }
+.plan-badge.badge-estimate { background: #f7edcf; }
+.plan-badge.badge-unknown { background: #fbe0d8; }
+.trip-dest-meta { font-size: 0.82rem; opacity: 0.8; margin: 2px 0 6px; }
+.plan-total .trip-totals { flex-basis: 100%; margin: 6px 0 2px; }

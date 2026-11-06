@@ -3,8 +3,24 @@
 Núcleo próprio de recomendação, **sem LLM e sem API paga**. Tudo roda no navegador, com funções puras em `src/services/trip/`.
 A tela é `#descubra` ("Descubra até onde seu dinheiro leva você", também chamada pelo banner da página inicial).
 
-> A base de conhecimento está **vazia** (`src/data/knowledge/base.json`). Sem dados reais, a tela mostra um estado vazio.
+> A base de conhecimento (`src/data/knowledge/base.json`) hoje tem só **estimativas editoriais** da fonte `pm-editorial`
+> (5 cenários: Rio→Paraty, Rio→São Paulo, Rio→Buenos Aires, São Paulo→Santiago, São Paulo→Lisboa; valores em reais, 06/11/2026).
+> **Nenhum preço da base é de fonte ou confirmado**: todos têm `status: estimate`, nota explicativa e aparecem como "estimativa".
+> Elas devem ser trocadas por preços de fonte (com data e licença) à medida que forem importados. Base vazia = estado vazio na tela.
 > Os dados de `src/services/trip/__tests__/fixtures.js` são fictícios e só existem nos testes.
+
+## Entradas do Descubra (Etapa 1)
+Além de orçamento, origem, dias, pessoas, preferências e carro, a tela aceita: **data de saída** (opcional; data passada é recusada),
+**orçamento total do grupo ou por pessoa** (por pessoa é multiplicado pelas pessoas e a premissa é mostrada),
+**como prefere chegar** (modos de transporte considerados) e **tipo de hospedagem** (hostel, pousada, hotel, camping; se o tipo pedido
+não existe no destino, o motor avisa e usa a mais barata). Destinos trazem `country`, `currency` (moeda local) e `timezone`; os valores
+da tela estão sempre em reais. O destino igual à origem não é sugerido.
+
+## Orçamento unificado
+O resumo do planejador (`planSummary`) usa o mesmo `computeBudget` da tela Descubra: confirmado/informado, estimado, reserva de
+imprevistos (10%), custo mínimo e se cabe no limite. Cada item do plano tem selo (`confirmado`, `publicado`, `estimativa`,
+`informado por você`, `valor não informado`). Ao editar o valor de um item vindo da descoberta, ele passa a "informado por você (ajustado)".
+`knownTotal` continua sendo a soma de tudo que tem número; item sem valor é pendência, nunca zero.
 
 ## Preço (`price.js`)
 Todo valor é um objeto `price`:

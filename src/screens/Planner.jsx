@@ -147,6 +147,7 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit, onNavigate, no
           <h2>{tripName || 'Minha próxima aventura'}</h2>
           <p className="summary-origin">
             {origin || 'Origem ainda não definida'} · {days} {days === '1' ? 'dia' : 'dias'}
+            {draft.startDate ? ` · saída em ${draft.startDate.split('-').reverse().join('/')}` : ''}
           </p>
           <div className="summary-divider" />
           <div className="summary-budget">
@@ -155,7 +156,7 @@ export function Planner({ draft, setDraft, onSaveDraft, onSubmit, onNavigate, no
           </div>
           <FxCard budget={budget} />
           <p className="summary-warning">
-            O câmbio é só referência. Este rascunho não calcula nem confirma custos de viagem.
+            O câmbio é só referência. O total do plano mostra o que é confirmado, informado por você ou estimado; nada é preço final sem confirmação.
           </p>
           <button className="btn-outline full" onClick={onSaveDraft}>
             <Bookmark size={16} aria-hidden="true" /> Guardar rascunho

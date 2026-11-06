@@ -21,14 +21,24 @@ const KIND_LABEL = { camping: 'Camping', caravan_site: 'Área de motorhome', hos
 const brl = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const FIT_ORDER = { within: 0, within_partial: 1, unknown: 2, over: 3, no_budget: 2 };
 
-export function normalizeRequest(req = {}) {
+const LODGING_KIND_VALUES = ['hostel', 'hotel', 'guesthouse', 'camping'];
+const isoDay = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? '')) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) ? String(v) : null);
+
+export function normalizeRequest(req = {}, now = new Date()) {
   const issues = [];
-  const budget = Number(req.budget);
+  const amount = Number(req.budget);
   const days = Number(req.days);
+  const budgetScope = req.budgetScope === 'person' ? 'person' : 'total';
+  const peopleCount = Number.isInteger(Number(req.people)) && Number(req.people) >= 1 ? Number(req.people) : 1;
+  // O motor trabalha sempre com o orçamento TOTAL do grupo; "por pessoa" é multiplicado pelo número de pessoas.
+  const budget = budgetScope === 'person' ? amount * peopleCount : amount;
+  const startDate = isoDay(req.startDate);
+  if (req.startDate && !startDate) issues.push('Data de saída inválida.');
+  else if (startDate && startDate < now.toISOString().slice(0, 10)) issues.push('A data de saída já passou.');
   if (!(budget > 0)) issues.push('Informe o orçamento.');
   if (!Number.isInteger(days) || days < 1 || days > 60) issues.push('Informe a duração em dias (1 a 60).');
   if (!String(req.origin ?? '').trim()) issues.push('Informe a origem.');
-  const people = Number.isInteger(Number(req.people)) && Number(req.people) >= 1 ? Number(req.people) : 1;
+  const people = peopleCount;
   const hasCar = req.hasCar === true ? true : req.hasCar === false ? false : null;
   let modes = (Array.isArray(req.modes) && req.modes.length ? req.modes : ['bus', 'flight', 'train', 'ferry']).filter((m) => TRANSPORT_MODES.includes(m));
   if (hasCar === true && !modes.includes('car')) modes = [...modes, 'car'];
@@ -36,8 +46,9 @@ export function normalizeRequest(req = {}) {
   return {
     issues,
     request: {
-      budget, days, nights: days - 1, people, rooms: Number(req.rooms) >= 1 ? Number(req.rooms) : Math.ceil(people / 2),
+      budget, budgetScope, budgetInput: amount, startDate, days, nights: days - 1, people, rooms: Number(req.rooms) >= 1 ? Number(req.rooms) : Math.ceil(people / 2),
       origin: String(req.origin ?? '').trim(), preferences: [...new Set((req.preferences ?? []).map(normKey).filter(Boolean))],
+      lodgingKinds: [...new Set((req.lodgingKinds ?? []).filter((k) => LODGING_KIND_VALUES.includes(k)))],
       modes, hasCar, contingencyPct: Number.isFinite(req.contingencyPct) ? req.contingencyPct : 10,
       includeOver: Boolean(req.includeOver), destinationId: req.destinationId ?? null,
     },
@@ -80,6 +91,11 @@ function buildCandidate(kb, dest, req, origin, now) {
     const wantWork = req.preferences.includes('work exchange') || req.preferences.includes('work_exchange');
     if (wantWork && options.some((o) => o.kind === 'work_exchange')) options = options.filter((o) => o.kind === 'work_exchange');
     else if (wantCamp && options.some((o) => o.kind === 'camping' || o.kind === 'caravan_site')) options = options.filter((o) => o.kind === 'camping' || o.kind === 'caravan_site');
+    if (req.lodgingKinds.length) {
+      const wanted = options.filter((o) => req.lodgingKinds.includes(o.kind));
+      if (wanted.length) options = wanted;
+      else notes.push(`Nenhuma hospedagem do tipo pedido (${req.lodgingKinds.map((k) => KIND_LABEL[k]).join(', ')}) cadastrada neste destino: mostrando a mais barata disponível.`);
+    }
     lodgingChoice = pickCheapest(options, ctx, now);
     lines.push({
       key: 'lodging', category: 'lodging', label: lodgingChoice ? `${lodgingChoice.display}: ${lodgingChoice.name}` : `Hospedagem em ${dest.name}`,
@@ -165,7 +181,7 @@ function rankKey(c) {
 
 /** Recomenda destinos. Nunca inventa dados: sem base ou sem origem conhecida, devolve o motivo. */
 export function recommend(rawRequest, kb, now = new Date()) {
-  const { issues, request: req } = normalizeRequest(rawRequest);
+  const { issues, request: req } = normalizeRequest(rawRequest, now);
   if (issues.length) return { status: RECOMMEND_STATUS.INVALID_REQUEST, results: [], hidden: { over: 0 }, message: issues.join(' '), issues };
   if (isEmptyKnowledgeBase(kb)) {
     return { status: RECOMMEND_STATUS.INSUFFICIENT_DATA, results: [], hidden: { over: 0 }, message: 'A base de viagens ainda está vazia: não há destinos, preços nem fontes cadastrados.' };
@@ -183,6 +199,7 @@ export function recommend(rawRequest, kb, now = new Date()) {
     dests = dests.filter((d) => d.id === req.destinationId);
     if (!dests.length) return { status: RECOMMEND_STATUS.UNKNOWN_DESTINATION, results: [], hidden: { over: 0 }, message: 'Destino não encontrado na base.' };
   }
+  dests = dests.filter((d) => normKey(d.name) !== origin.key); // não sugere o próprio ponto de partida
   const all = dests.map((d) => buildCandidate(kb, d, req, origin, now));
   const visible = all.filter((c) => req.includeOver || c.budget.fit !== 'over');
   const ranked = visible.sort(compare).map((c, i) => ({ rank: i + 1, ...c, reasons: reasonsFor(c, req, kb, now) }));
@@ -191,6 +208,6 @@ export function recommend(rawRequest, kb, now = new Date()) {
     status: ranked.length ? RECOMMEND_STATUS.OK : RECOMMEND_STATUS.NONE_WITHIN_BUDGET,
     results: ranked, hidden: { over: hiddenOver }, request: req, origin: origin.name,
     message: ranked.length ? null : `Nenhum destino da base cabe em ${brl(req.budget)} com os dados atuais (${hiddenOver} acima do orçamento).`,
-    assumptions: [`${req.people} pessoa(s) em ${req.rooms} quarto(s)`, `${req.days} dias e ${req.nights} noite(s)`, 'transporte contado em 2 trechos (ida e volta)'],
+    assumptions: [req.budgetScope === 'person' ? `orçamento de ${brl(req.budgetInput)} por pessoa (total do grupo: ${brl(req.budget)})` : `orçamento total do grupo de ${brl(req.budget)}`, `${req.people} pessoa(s) em ${req.rooms} quarto(s)`, `${req.days} dias e ${req.nights} noite(s)`, 'transporte contado em 2 trechos (ida e volta)'],
   };
 }

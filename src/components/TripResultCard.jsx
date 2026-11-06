@@ -29,6 +29,12 @@ export function TripResultCard({ result, kb, onSend }) {
         <span className={`trip-fit fit-${b.fit}`}>{FIT_LABEL[b.fit]}</span>
       </header>
       {result.destination.description && <p>{result.destination.description}</p>}
+      {(result.destination.country || result.destination.localCurrency || result.destination.timezone) && (
+        <p className="trip-dest-meta">
+          {[result.destination.country, result.destination.localCurrency && `moeda local: ${result.destination.localCurrency}`, result.destination.timezone && `fuso: ${result.destination.timezone}`].filter(Boolean).join(' · ')}
+          {result.destination.localCurrency && result.destination.localCurrency !== 'BRL' ? ' · valores desta tela estão em reais (R$)' : ''}
+        </p>
+      )}
 
       <table className="trip-lines">
         <caption className="sr-only">Custos discriminados</caption>

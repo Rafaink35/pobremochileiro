@@ -140,3 +140,71 @@ Leituras e decisões que decorrem dos números:
 - **Estrelas:** só quando a tag existe (27% em Lisboa); nunca são deduzidas.
 
 Demonstração da ferramenta com dados **SIMULADOS** (arquivos inventados, que só imitam as contagens acima; **não são dados reais**), para medir o efeito do limite: com limite 100, Lisboa 589 locais com nome → 100 exibidos (56 sem nome ocultados, resposta ≈ 139 KB); Santiago 294 → 100 (20 ocultados, ≈ 130 KB); Tóquio 1.184 → 100 (107 ocultados, ≈ 149 KB). Processamento de 8 a 44 ms por arquivo. Nesses arquivos simulados, nomes repetidos em lugares distintos foram mantidos separados e os do mesmo lugar foram agrupados. Os valores reais só podem ser medidos rodando a ferramenta sobre os JSON reais.
+
+---
+
+## Validação final com os JSON reais (analisador local, REAL, 06/11/2026)
+
+Esta seção registra o resultado de `scripts/analyze-overpass-json.mjs` rodado pelo dono sobre os três JSON reais do Overpass. **Os arquivos JSON não estão no repositório e não foram copiados para ele** (licença ODbL). Aqui há só contagens e métricas agregadas.
+
+### Metodologia
+- Código: commit `f5498b1`; Node v24.19.0 no Windows do dono.
+- Ferramenta: lê só o JSON local, bloqueia rede (`fetch` e `net.Socket.connect`), não grava nada e não transmite dados. Usa a mesma função de montagem da busca (`assembleResults`): normalização, classificação, agrupamento (`groupDuplicates`), classificação de preço e seleção para exibição.
+- Centros: Lisboa 38.7078,-9.1366; Santiago -33.4377,-70.6511; Tóquio 35.6769,139.7639. Limites testados: 100, 150 e 200. Três execuções, resultados idênticos.
+- Os três arquivos tinham BOM UTF-8 (padrão do PowerShell 5.1). O BOM é ignorado só na leitura; o arquivo original não é alterado.
+- Integridade: o SHA-256 dos três JSON no passo A (antes) e no passo D (depois) é **idêntico**, ou seja, os originais não foram modificados:
+  - Lisboa.json `728A5D08F4EA5BC7BEF1FA7F4C757BA44E11F2FBD623E0655E81AAAC2E4E8F16`
+  - Santiago.json `0018F27812FB3957FE6D6CB7E16B11BCB52B378DA88C7BCA5F9417287B80C094`
+  - Toquio.json `CDBAB27E302061366E692634A9C2DA64374B4AACB564DE6667ECCFA0947D0607`
+- O algoritmo de deduplicação e as funcionalidades do Stay Finder não foram alterados para esta validação.
+
+### Contagens
+| | Lisboa | Santiago | Tóquio |
+|---|---:|---:|---:|
+| Elementos recebidos | 652 | 319 | 1.311 |
+| Válidos (rejeitados) | 652 (0) | 319 (0) | 1.311 (0) |
+| node / way / relation | 482 / 164 / 6 | 187 / 131 / 1 | 887 / 415 / 9 |
+| Sem nome | 56 | 20 | 107 |
+| Locais após agrupar | 626 | 317 | 1.285 |
+| Exibíveis (com nome, após agrupar) | 570 | 297 | 1.178 |
+| Hotel / pousada / hostel / camping | 389 / 144 / 114 / 5 | 235 / 13 / 71 / 0 | 1.082 / 76 / 146 / 7 |
+| `tourism` bruto | hotel 388, guest_house 144, hostel 114, caravan_site 3, camp_site 2, motel 1 | hotel 219, hostel 71, motel 16, guest_house 13 | hotel 1.071, hostel 146, guest_house 76, motel 11, camp_site 6, caravan_site 1 |
+| Com site / telefone / cidade / estrelas / horário | 347 / 319 / 321 / 179 / 25 | 64 / 57 / 146 / 12 / 8 | 443 / 299 / 266 / 57 / 35 |
+
+### Exibição (limite)
+| Limite | Lisboa (restantes) | Santiago (restantes) | Tóquio (restantes) |
+|---|---:|---:|---:|
+| 100 | 100 (470) | 100 (197) | 100 (1.078) |
+| 150 | 150 (420) | 150 (147) | 150 (1.028) |
+| 200 | 200 (370) | 200 (97) | 200 (978) |
+
+Tamanho da resposta (100 / 150 / 200): Lisboa 142 / 208 / 274 KB; Santiago 133 / 196 / 260 KB; Tóquio 152 / 216 / 280 KB. Processamento: 150–275 ms (Lisboa), 51–88 ms (Santiago), 200–260 ms (Tóquio). Registros sem nome ficam preservados no processamento, não aparecem na lista principal e são contados.
+
+### Agrupamento e possíveis duplicatas
+| | Lisboa | Santiago | Tóquio |
+|---|---:|---:|---:|
+| Duplicatas confirmadas (agrupadas por sinal forte) | 26 (10 pares, 4 trios, 2 grupos de 5) | 2 (pares) | 26 (pares) |
+| Possíveis duplicatas (só marcadas, nunca agrupadas nem ocultadas) | 19 | 20 | 179 (~14%) |
+| Grupos de nome repetido (normalizado) / elementos | 14 / 31 | 9 / 18 | 56 / 184 |
+| Desses, mantidos separados / totalmente agrupados | 3 / 11 | 7 / 2 | 49 / 7 |
+
+- Registros sem nome nunca foram unidos a registros com nome.
+- Nome repetido não é duplicidade: só há agrupamento com sinal forte (mesma fonte e id; mesma categoria, nome e ≤150 m; mesmo site próprio ou telefone ≤300 m).
+- Pontos a revisar (sem mudar o algoritmo agora): os 2 grupos de 5 e os 4 trios de Lisboa (mesmo nome a ≤150 m pode ser o mesmo prédio ou unidades distintas); as 179 possíveis duplicatas de Tóquio provavelmente têm ruído em nomes japoneses curtos, mas só marcam e não escondem nada.
+- Diferenças em relação à contagem bruta do PowerShell, esperadas: sites em Tóquio 443 contra 442 (o analisador também conta `url`); grupos de nomes repetidos em Tóquio 56 contra 40 (o analisador normaliza acentos, pontuação e escrita; o PowerShell só comparava minúsculas). Total, sem nome, telefone, cidade, estrelas, horário, `fee` e `charge` coincidem.
+
+### Preços
+**Nenhum preço foi verificável nos dados OSM analisados.**
+- `charge` e `check_date:charge`: 0 nas três cidades.
+- `fee` (apenas observação, nunca preço, gratuidade, zero, filtro ou ranking): Lisboa no=2, yes=1; Santiago nenhum; Tóquio no=1, yes=1.
+- Classe de preço `unavailable` em todos os exibíveis (570 / 297 / 1.178); ranking de preço vazio (0).
+- Outras chaves com aparência de preço, ignoradas por não serem preço de hospedagem: `internet_access:fee` (149 / 24 / 118), `toilets:fee` (1 / 1 / 0), `breakfast:charge` 1 e `breakfast:fee` 1 (só Tóquio).
+- Nenhum preço, disponibilidade, estrela ou avaliação foi inventado.
+
+### Limitações
+- Três destinos, um instante no tempo; Buenos Aires e Paraty não foram revalidados no Overpass (falharam com 502 no teste do dono).
+- Os JSON são instantâneos do OSM de 06/11/2026; a cobertura varia por cidade.
+- Sem preço verificável nos dados OSM, o ranking de preço depende de outras fontes (publicadas, comunidade) que não entraram nesta medição.
+- `addr:city` é pouco preenchido (20% a 49%); a localização vem das coordenadas.
+- A avaliação de duplicatas é estatística (contagens e agrupamentos), sem conferência manual item a item.
+- O limite público do Overpass é de ordem de ~100 consultas por dia; as ferramentas de chat `search_campings` e `search_lodging` ainda consultam o Overpass diretamente no servidor.

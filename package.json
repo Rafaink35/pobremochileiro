@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "kb:validate": "node scripts/validate-kb.mjs",
+    "check:bundle": "node scripts/check-bundle.mjs",
+    "build:verify": "vite build && node scripts/check-bundle.mjs",
     "start": "node server.mjs"
   },
   "dependencies": {

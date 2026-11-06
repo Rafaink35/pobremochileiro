@@ -193,9 +193,9 @@ export function createToolbox({ env, fetchImpl, now = () => new Date(), plan = n
       return {
         note: '© OpenStreetMap contributors (ODbL). Não garante que o local está aberto.',
         results: dedupeLodgings(r.records).slice(0, 8).map((c) => {
-          const priceBRL = c.fee === 'free' ? 0 : c.price?.currency === 'BRL' ? c.price.amount : null;
+          const priceBRL = c.price?.currency === 'BRL' ? c.price.amount : null; // só valor explícito (`charge`); a tag fee nunca vira 0
           const id = register('camping', { priceBRL, url: c.source.sourceUrl, name: 'OpenStreetMap', label: c.name ?? 'Camping sem nome' });
-          return { id, name: c.name, kind: c.kind, city: c.city, fee: c.fee, price_brl: priceBRL, price_unit_known: false, website: c.website };
+          return { id, name: c.name, kind: c.kind, city: c.city, fee_tag: c.feeTag ?? null, price_brl: priceBRL, price_unit_known: false, website: c.website };
         }),
       };
     },
@@ -208,9 +208,9 @@ export function createToolbox({ env, fetchImpl, now = () => new Date(), plan = n
       return {
         note: '© OpenStreetMap contributors (ODbL). Não garante que o local está aberto nem informa disponibilidade; preço quase nunca consta.',
         results: dedupeLodgings(r.records).slice(0, 8).map((c) => {
-          const priceBRL = c.fee === 'free' ? 0 : c.price?.currency === 'BRL' ? c.price.amount : null;
+          const priceBRL = c.price?.currency === 'BRL' ? c.price.amount : null; // só valor explícito (`charge`); a tag fee nunca vira 0
           const id = register(cat === 'camping' ? 'camping' : 'hospedagem', { priceBRL, url: c.source.sourceUrl, name: 'OpenStreetMap', label: c.name ?? 'Local sem nome' });
-          return { id, name: c.name, kind: c.kind, stars: c.stars, city: c.city, fee: c.fee, price_brl: priceBRL, price_unit_known: false, website: c.website };
+          return { id, name: c.name, kind: c.kind, stars: c.stars, city: c.city, fee_tag: c.feeTag ?? null, price_brl: priceBRL, price_unit_known: false, website: c.website };
         }),
       };
     },

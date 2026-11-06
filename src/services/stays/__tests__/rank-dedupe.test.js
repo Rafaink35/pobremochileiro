@@ -57,10 +57,12 @@ describe('ranking das opções com preço verificável', () => {
     expect(r.withPrice).toHaveLength(1);
     expect(r.notes.join(' ')).toMatch(/nenhum comparável/);
   });
-  it('gratuito segundo a fonte fica em "com preço" e não vira o mais barato do ranking', () => {
-    const r = rankStays([rec({ prices: [{ status: 'published', free: true, observedAt: at(3), source: { name: 'OSM' } }] }), rec({ prices: [price(20)] })], NOW);
+  it('a tag fee não é preço: local com feeTag e sem valor fica sem preço e nunca entra no ranking', () => {
+    const r = rankStays([rec({ feeTag: 'no' }), rec({ feeTag: 'yes' }), rec({ prices: [price(20)] })], NOW);
     expect(r.ranked.map((i) => i.pricing.amount)).toEqual([20]);
-    expect(r.withPrice[0].pricing.free).toBe(true);
+    expect(r.noPrice).toHaveLength(2);
+    expect(r.noPrice.every((i) => i.pricing.class === 'unavailable' && i.pricing.amount === null)).toBe(true);
+    expect(r.ranked.concat(r.withPrice).some((i) => i.pricing.amount === 0)).toBe(false);
   });
   it('desempate: confirmado antes de publicado, depois nome', () => {
     const a = rec({ name: 'B', prices: [price(20)] });

@@ -78,7 +78,8 @@ export function normalizeOsmElement(el, { collectedAt }) {
   const coords = validateCoordinates(el.lat ?? el.center?.lat, el.lon ?? el.center?.lon);
   if (!coords) return null;
 
-  const fee = tags.fee === 'yes' ? 'paid' : tags.fee === 'no' ? 'free' : 'unknown';
+  // `fee` é só uma OBSERVAÇÃO da fonte (valor bruto da tag): nunca é preço, gratuidade, custo zero, filtro nem critério de ranking.
+  const feeTag = clean(tags.fee)?.toLowerCase() ?? null;
   const wifi = tags.internet_access;
   const originalId = `${el.type}/${el.id}`;
   const source = {
@@ -107,7 +108,7 @@ export function normalizeOsmElement(el, { collectedAt }) {
     },
     tents: triState(tags.tents),
     caravans: triState(tags.caravans),
-    fee, // 'free' | 'paid' | 'unknown'
+    feeTag, // valor bruto da tag `fee` (ex.: 'yes', 'no') ou null; observação, não preço
     price: parseCharge(tags.charge), // só com moeda explícita; unidade (noite, pessoa, barraca) não é inferida
     chargeText: clean(tags.charge),
     website: httpUrl(tags.website) ?? httpUrl(tags['contact:website']) ?? httpUrl(tags.url),

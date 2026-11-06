@@ -17,8 +17,8 @@ function mergeInto(primary, other) {
     if (merged[key] === null || merged[key] === undefined) merged[key] = other[key] ?? null;
     else if (other[key] != null && JSON.stringify(other[key]) !== JSON.stringify(merged[key])) conflicts.add(key);
   }
-  if (merged.fee === 'unknown') merged.fee = other.fee;
-  else if (other.fee !== 'unknown' && other.fee !== merged.fee) conflicts.add('fee');
+  if (merged.feeTag == null) merged.feeTag = other.feeTag ?? null;
+  else if (other.feeTag != null && other.feeTag !== merged.feeTag) conflicts.add('feeTag');
   merged.amenities = { ...merged.amenities };
   for (const [k, v] of Object.entries(other.amenities)) {
     if (merged.amenities[k] === null) merged.amenities[k] = v;
@@ -74,7 +74,6 @@ export function filterLodgings(records, f = {}) {
       return false;
     }
     if (f.maxPrice !== undefined && f.maxPrice !== null && f.maxPrice !== '') {
-      if (r.fee === 'free') return true;
       if (!r.price || r.price.currency !== 'BRL') {
         hiddenUnknown += 1;
         return false;

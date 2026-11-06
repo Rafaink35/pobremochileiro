@@ -17,16 +17,16 @@ export const CITIES = {
   lisboa: {
     query: 'Lisboa', nominatim: [place(1001, 'Lisboa', 38.7167, -9.1333, { country: 'Portugal', countryCode: 'PT', nameEn: 'Lisbon' })],
     elements: [
-      el(1, { tourism: 'hostel', name: 'Hostel Exemplo Alfama', charge: '18 EUR per person per night', website: 'https://alfama-exemplo.test', 'addr:country': 'PT' }, 38.7110, -9.1290),
+      el(1, { tourism: 'hostel', name: 'Hostel Exemplo Alfama', charge: '18 EUR per person per night', 'check_date:charge': '2026-10-20', website: 'https://alfama-exemplo.test', 'addr:country': 'PT' }, 38.7110, -9.1290),
       el(2, { tourism: 'camp_site', name: 'Parque de Campismo Fictício', fee: 'no' }, 38.7500, -9.1800),
       el(3, { tourism: 'guest_house', name: 'Casa de Hóspedes Teste' }, 38.7140, -9.1400),
-      el(4, { tourism: 'hotel', name: 'Hotel Fictício Chiado', charge: '90 EUR/room/night' }, 38.7105, -9.1420, OLD),
+      el(4, { tourism: 'hotel', name: 'Hotel Fictício Chiado', charge: '90 EUR/room/night', 'check_date:charge': '2025-12-01' }, 38.7105, -9.1420, OLD),
     ],
   },
   buenosAires: {
     query: 'Buenos Aires', nominatim: [place(1002, 'Buenos Aires', -34.6037, -58.3816, { country: 'Argentina', countryCode: 'AR', nameEn: 'Buenos Aires' })],
     elements: [
-      el(11, { tourism: 'hostel', name: 'Albergue Ejemplo Palermo', charge: 'ARS 12.500 por persona por noche' }, -34.5880, -58.4300),
+      el(11, { tourism: 'hostel', name: 'Albergue Ejemplo Palermo', charge: 'ARS 12.500 por persona por noche', 'check_date:charge': '2026-10-20' }, -34.5880, -58.4300),
       el(12, { tourism: 'hostel', name: 'Hostel Sin Precio San Telmo' }, -34.6210, -58.3720),
       el(13, { tourism: 'guest_house', name: 'Posada de Prueba' }, -34.6000, -58.3900),
     ],
@@ -39,17 +39,17 @@ export const CITIES = {
       place(1004, 'Santiago', 9.869, -83.798, { country: 'Costa Rica', countryCode: 'CR', nameEn: 'Santiago', importance: 0.729, kind: 'village' }),
     ],
     elements: [
-      el(21, { tourism: 'hostel', name: 'Hostal Ejemplo Bellavista', charge: '15000 CLP per person per night' }, -33.4300, -70.6350),
+      el(21, { tourism: 'hostel', name: 'Hostal Ejemplo Bellavista', charge: '15000 CLP per person per night', 'check_date:charge': '2026-10-20' }, -33.4300, -70.6350),
       el(22, { tourism: 'camp_site', name: 'Camping Ficticio Cajón', fee: 'yes' }, -33.4600, -70.6000),
     ],
   },
   paraty: {
     query: 'Paraty', nominatim: [place(1005, 'Paraty', -23.2178, -44.7131, { country: 'Brasil', countryCode: 'BR', state: 'Rio de Janeiro', nameEn: 'Paraty', regionCode: 'BR-RJ' })],
     elements: [
-      el(31, { tourism: 'camp_site', name: 'Camping Exemplo Trindade', charge: 'R$ 50 por pessoa por noite', 'addr:city': 'Paraty' }, -23.3560, -44.7240),
-      el(32, { tourism: 'guest_house', name: 'Pousada Fictícia do Centro', charge: 'R$ 280 por quarto por noite', 'addr:city': 'Paraty' }, -23.2200, -44.7150),
+      el(31, { tourism: 'camp_site', name: 'Camping Exemplo Trindade', charge: 'R$ 50 por pessoa por noite', 'check_date:charge': '2026-10-20', 'addr:city': 'Paraty' }, -23.3560, -44.7240),
+      el(32, { tourism: 'guest_house', name: 'Pousada Fictícia do Centro', charge: 'R$ 280 por quarto por noite', 'check_date:charge': '2026-10-20', 'addr:city': 'Paraty' }, -23.2200, -44.7150),
       el(33, { tourism: 'guest_house', name: 'Pousada Sem Preço', 'addr:city': 'Paraty' }, -23.2190, -44.7160),
-      el(34, { tourism: 'hostel', name: 'Hostel Exemplo Paraty', charge: 'R$ 70 por pessoa por noite', 'addr:city': 'Paraty' }, -23.2170, -44.7140),
+      el(34, { tourism: 'hostel', name: 'Hostel Exemplo Paraty', charge: 'R$ 70 por pessoa por noite', 'check_date:charge': '2026-10-20', 'addr:city': 'Paraty' }, -23.2170, -44.7140),
     ],
   },
   tokyo: {
@@ -60,7 +60,7 @@ export const CITIES = {
       place(1007, '東京', 35.6895, 139.6917, { country: '日本', countryCode: 'JP', nameEn: 'Tokyo', kind: 'city', importance: 0.6 }),
     ],
     elements: [
-      el(41, { tourism: 'hostel', name: '渋谷ゲストハウス', charge: '3500 JPY per person per night' }, 35.6580, 139.7010),
+      el(41, { tourism: 'hostel', name: '渋谷ゲストハウス', charge: '3500 JPY per person per night', 'check_date:charge': '2026-10-20' }, 35.6580, 139.7010),
       el(42, { tourism: 'hostel', name: 'ホステル浅草', 'name:en': 'Hostel Asakusa' }, 35.7110, 139.7970),
       el(43, { tourism: 'guest_house', name: 'ゲストハウス上野' }, 35.7140, 139.7740),
       el(44, { tourism: 'camp_site', name: 'キャンプ場 多摩', fee: 'no' }, 35.7600, 139.4000),

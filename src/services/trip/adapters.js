@@ -1,15 +1,10 @@
 // Adaptadores dos modelos já existentes no app para a base de conhecimento. Preços só entram se a fonte os der.
-import { createPrice, unknownPrice, PRICE_STATUS } from './price.js';
+import { unknownPrice } from './price.js';
 
-/** Camping do OpenStreetMap -> hospedagem. `fee=no` vira preço publicado 0; preço com unidade desconhecida fica desconhecido. */
+/** Camping do OpenStreetMap -> hospedagem. A tag `fee` NÃO gera preço (nem zero): preço com unidade desconhecida fica desconhecido. */
 export function lodgingFromCamping(c, destinationId) {
   const s = c.source;
-  const origin = { sourceId: 'osm', name: s.name };
-  const common = { origin, referenceUrl: s.sourceUrl, collectedAt: s.collectedAt };
-  let price = unknownPrice(c.chargeText ? `valor do OSM: "${c.chargeText}" (unidade não informada)` : null);
-  if (c.fee === 'free') {
-    price = createPrice({ ...common, status: PRICE_STATUS.PUBLISHED, amount: 0, currency: 'BRL', unit: { basis: 'group', period: 'once' }, note: 'fee=no no OpenStreetMap' });
-  }
+  const price = unknownPrice(c.chargeText ? `valor do OSM: "${c.chargeText}" (unidade não informada)` : null);
   return {
     id: c.id, destinationId, name: c.name ?? 'Camping sem nome', kind: c.kind === 'caravan_site' ? 'caravan_site' : 'camping',
     tags: [], lat: c.lat, lon: c.lon, acceptsTents: c.tents, website: c.website, price, openStatus: 'unknown',

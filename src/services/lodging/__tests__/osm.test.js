@@ -17,7 +17,8 @@ describe('normalização OSM', () => {
   it('camping sem preço e sem contato: campos ficam desconhecidos, não inventados', () => {
     const r = normalizeOsmElement(node(1, { tourism: 'camp_site', name: 'Camping A' }), { collectedAt: NOW });
     expect(r.price).toBeNull();
-    expect(r.fee).toBe('unknown');
+    expect(r.feeTag).toBeNull();
+    expect(r).not.toHaveProperty('fee');
     expect(r.website).toBeNull();
     expect(r.phone).toBeNull();
     expect(r.email).toBeNull();
@@ -45,12 +46,16 @@ describe('normalização OSM', () => {
     expect(c.tents).toBe(false);
     expect(c.price).toEqual({ amount: 30, currency: 'BRL' });
   });
-  it('preço só com moeda explícita; fee=no é gratuito, fee ausente é desconhecido', () => {
+  it('preço só com moeda explícita; fee é só observação bruta (feeTag), nunca gratuidade', () => {
     expect(parseCharge('R$ 25,50')).toEqual({ amount: 25.5, currency: 'BRL' });
     expect(parseCharge('20')).toBeNull();
     expect(parseCharge('$ 20')).toBeNull();
     expect(parseCharge('varia')).toBeNull();
-    expect(normalizeOsmElement(node(3, { tourism: 'camp_site', fee: 'no' }), { collectedAt: NOW }).fee).toBe('free');
+    const semFee = normalizeOsmElement(node(3, { tourism: 'camp_site', fee: 'no' }), { collectedAt: NOW });
+    expect(semFee.feeTag).toBe('no');
+    expect(semFee.price).toBeNull();
+    expect(semFee).not.toHaveProperty('fee');
+    expect(normalizeOsmElement(node(5, { tourism: 'camp_site', fee: 'YES' }), { collectedAt: NOW }).feeTag).toBe('yes');
   });
   it('coordenadas inválidas ou ausentes descartam o registro', () => {
     expect(normalizeOsmElement(node(4, { tourism: 'camp_site' }, { lat: 120 }), { collectedAt: NOW })).toBeNull();
@@ -129,12 +134,12 @@ describe('duplicatas e filtros', () => {
     expect(f.hiddenUnknown).toBe(1);
     expect(filterLodgings(list, { state: 'sc' }).records).toHaveLength(1);
   });
-  it('preço máximo: grátis entra, sem preço fica oculto e contado', () => {
+  it('preço máximo: só valor explícito; fee=no não passa como "grátis", sem preço fica oculto e contado', () => {
     const list = [rec(1, { name: 'G', fee: 'no' }), rec(2, { name: 'P', fee: 'yes', charge: '40 BRL' }), rec(3, { name: 'U' })];
     const f = filterLodgings(list, { maxPrice: '50' });
-    expect(f.records.map((r) => r.name).sort()).toEqual(['G', 'P']);
-    expect(f.hiddenUnknown).toBe(1);
-    expect(filterLodgings(list, { maxPrice: '10' }).records.map((r) => r.name)).toEqual(['G']);
+    expect(f.records.map((r) => r.name)).toEqual(['P']);
+    expect(f.hiddenUnknown).toBe(2);
+    expect(filterLodgings(list, { maxPrice: '10' }).records).toEqual([]);
   });
 });
 
@@ -148,7 +153,7 @@ describe('hotéis e hostels', () => {
   });
   it('normaliza hotel sem inventar preço, estrelas ou disponibilidade', () => {
     const h = normalizeOsmElement(node(11, { tourism: 'hotel', name: 'Hotel X' }), { collectedAt: NOW });
-    expect(h).toMatchObject({ kind: 'hotel', price: null, stars: null, fee: 'unknown', openStatus: 'unknown' });
+    expect(h).toMatchObject({ kind: 'hotel', price: null, stars: null, feeTag: null, openStatus: 'unknown' });
     expect(normalizeOsmElement(node(12, { tourism: 'hostel', name: 'H', stars: '3' }), { collectedAt: NOW })).toMatchObject({ kind: 'hostel', stars: 3 });
     expect(normalizeOsmElement(node(13, { tourism: 'hostel', stars: 'luxo' }), { collectedAt: NOW }).stars).toBeNull();
     expect(normalizeOsmElement(node(14, { tourism: 'museum' }), { collectedAt: NOW })).toBeNull();

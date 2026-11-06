@@ -8,7 +8,7 @@ Hospedagem (`#hospedagem`) → busca por cidade/região → lista → detalhes (
 - Consulta Overpass: `tourism=camp_site` e `tourism=caravan_site` dentro das áreas administrativas com o nome digitado.
   Nomes ambíguos (ex.: cidade e estado com o mesmo nome) trazem as duas áreas.
 - Endpoint padrão: `https://overpass-api.de/api/interpreter` (política de uso justo: não automatize consultas em massa).
-- Tag ausente = desconhecido. `fee=no` vira "gratuito segundo a fonte"; `charge` só vira preço com moeda explícita
+- Tag ausente = desconhecido. `fee` é só uma observação (`feeTag`), nunca preço nem gratuidade; `charge` só vira preço com moeda explícita
   (ex.: `30 BRL`) e a unidade (noite, pessoa, barraca) nunca é inferida.
 - O OSM **não** informa se o local está aberto ou aceita hóspedes hoje; a tela diz isso.
 - Cada registro guarda: id original (`node/123`), URL da fonte, licença ODbL 1.0, atribuição, **data de coleta** e a

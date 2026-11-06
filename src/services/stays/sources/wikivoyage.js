@@ -78,7 +78,7 @@ export function parseSleepListings(wikitext, { title, revisionAt, destination, c
       id: `wikivoyage:${title}#${n}`, provider: 'wikivoyage', sourceId: `${title}#${n}`, name, category: UNCLASSIFIED, osmKind: null, lat: c.lat, lon: c.lon,
       address: plain(t.params.address), city: null, region: null, country: destination?.countryCode ?? null,
       website: httpUrl(t.params.url), phone: plain(t.params.phone), email: plain(t.params.email), stars: null, openingHours: null, access: null,
-      amenities: {}, tents: null, caravans: null, fee: 'unknown', priceText, openStatus: 'unknown', prices, sources: [source],
+      amenities: {}, tents: null, caravans: null, feeTag: null, priceText, openStatus: 'unknown', prices, sources: [source],
     });
   }
   return { records, skipped, listings: n };

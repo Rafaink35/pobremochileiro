@@ -76,3 +76,32 @@ Textos de preço reais da mesma página (listagens sem coordenadas): `From R$300
 - **Servidor de chat** (`services/roteiro/tools.js`): as ferramentas `search_campings` e `search_lodging` ainda consultam o Overpass diretamente **no servidor** (não pelo `/api/stays`). Não é o navegador, mas não compartilha cache nem limite com o Stay Finder. Centralizar é a próxima melhoria.
 - **Escala**: a política da instância pública do Overpass (menos de ~100 consultas/dia para uso regular) e do Nominatim (1 req/s, cache) exige instância própria antes de divulgação ampla.
 - Cadastur: nunca validado com o arquivo real.
+
+---
+
+## Validação do Overpass no Windows do dono (06/11/2026) — REAL
+
+O ambiente de desenvolvimento não alcança o Overpass (seção anterior). O dono rodou o roteiro `overpass-teste.ps1` (5 consultas, 1 a cada 10 s, uma por destino, as mesmas consultas por centro e raio do Stay Finder) no próprio computador Windows. **Esse teste usou o roteiro PowerShell, não o código do aplicativo.** Horário de cada consulta: não informado. Os cinco JSON ficaram só no computador do dono (`Documents\PobreMochileiro-Validacao`) e **não estão no repositório** (uma cópia de dados do OSM seria um banco derivado, com compartilhamento pela mesma licença, ODbL).
+
+| Destino | Resultado | Elementos | Tipos (`tourism`) |
+|---|---|---:|---|
+| Lisboa | OK | 652 | hotel 388, guest_house 144, hostel 114, caravan_site 3, camp_site 2, motel 1 |
+| Buenos Aires | HTTP 502 | — | — |
+| Santiago | OK | 319 | hotel 219, hostel 71, motel 16, guest_house 13 |
+| Paraty | HTTP 502 | — | — |
+| Tóquio | OK | 1.311 | hotel 1.071, hostel 146, guest_house 76, motel 11, camp_site 6, caravan_site 1 |
+
+Total: 2.282 elementos reais em três destinos.
+
+Observações do dono, registradas como evidência:
+- **Nenhum registro tinha a tag `charge`**: não há preço utilizável nesses dados.
+- A tag `fee` apareceu em **cinco** registros no total. **Não é preço de diária**: o aplicativo a guarda só como observação (`feeTag`) e nunca a transforma em preço, gratuidade, custo zero, filtro ou critério de ranking.
+- Os **HTTP 502** de Buenos Aires e Paraty são erro do servidor do Overpass (Paraty é uma consulta pequena, e Tóquio, a maior, funcionou): falha transitória do lado do serviço. O Stay Finder agora tenta no máximo mais uma vez, respeitando `Retry-After`, e mostra "ocupado ou indisponível (HTTP 502)".
+- Diferença entre ambientes: o Overpass responde na rede residencial do dono e não responde do ambiente de desenvolvimento (IP de saída de datacenter). Causa exata não determinada; provável filtro de IP de nuvem no servidor.
+- **Os números acima são evidência de consultas reais, não dados do aplicativo**: não estão fixos em nenhum código ou teste (um teste automático verifica isso) e o pacote de produção é verificado por `npm run build:verify`.
+
+Pendente: a análise local dos JSON (contagens de nome, site, telefone, cidade, estrelas, horário, tipos de elemento, nomes repetidos e chaves de preço) alimenta as decisões de limite de resultados (P2), tratamento de registros sem nome (P3) e ferramenta de análise (P5). Nada disso foi definido ainda.
+
+### Regras de preço consolidadas nesta validação
+- Preço do OpenStreetMap só vale com `charge` (valor e moeda) e data de verificação do **próprio preço** (`check_date:charge`). A data de edição do objeto no OSM **não** é a data do preço.
+- `fee` nunca é preço.

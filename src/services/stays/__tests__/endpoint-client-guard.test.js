@@ -66,12 +66,13 @@ describe('cliente e adaptação para a tela existente', () => {
   });
   it('registro adaptado funciona com filtros, detalhe e planejador existentes', () => {
     const item = {
-      id: 'osm:node/1', provider: 'osm', name: 'Hostel X', category: 'hostel', osmKind: 'hostel', lat: 1, lon: 2, city: 'Lisboa', region: 'Lisboa', amenities: {}, fee: 'unknown', priceText: '18 EUR', prices: [],
+      id: 'osm:node/1', provider: 'osm', name: 'Hostel X', category: 'hostel', osmKind: 'hostel', lat: 1, lon: 2, city: 'Lisboa', region: 'Lisboa', amenities: {}, feeTag: null, priceText: '18 EUR', prices: [],
       sources: [{ provider: 'osm', name: 'OpenStreetMap', license: 'ODbL 1.0', attribution: '© OSM', sourceUrl: 'https://osm.test/1', originalId: 'node/1', collectedAt: NOW.toISOString() }],
       pricing: { class: 'published', label: 'Publicado, não confirmado', amount: 18, currency: 'EUR', unit: { basis: 'person', period: 'night' }, free: false, observedAt: '2026-10-20T10:00:00.000Z', source: { name: 'OpenStreetMap' } },
     };
     const rec = toLegacyRecord(item, 'ranked');
-    expect(rec).toMatchObject({ kind: 'hostel', fee: 'paid', price: { amount: 18, currency: 'EUR' }, section: 'ranked' });
+    expect(rec).toMatchObject({ kind: 'hostel', price: { amount: 18, currency: 'EUR' }, section: 'ranked' });
+    expect(rec).not.toHaveProperty('fee');
     expect(describePricing(item.pricing)).toMatch(/18,00.*por pessoa por noite.*Publicado, não confirmado.*2026-10-20.*OpenStreetMap/);
     expect(filterLodgings([rec], { kind: 'hostel' }).records).toHaveLength(1);
     const entry = buildStayEntry(rec, 'hostel', NOW);
@@ -85,7 +86,7 @@ describe('cliente e adaptação para a tela existente', () => {
   });
   it('sem preço: não vira preço nem "gratuito"', () => {
     const rec = toLegacyRecord({ id: 'a', category: 'pousada', osmKind: 'guest_house', amenities: {}, fee: 'unknown', prices: [], sources: [], pricing: { class: 'unavailable' } }, 'noPrice');
-    expect(rec).toMatchObject({ kind: 'guest_house', fee: 'unknown', price: null, chargeText: null });
+    expect(rec).toMatchObject({ kind: 'guest_house', feeTag: null, price: null, chargeText: null });
     expect(flattenGroups({ ranked: [], withPrice: [], stalePrice: [], noPrice: [{ id: 'a', category: 'pousada', amenities: {}, sources: [], pricing: { class: 'unavailable' } }] })[0].section).toBe('noPrice');
   });
 });
@@ -143,5 +144,19 @@ describe('produção: sem dados fictícios e sem alterar o banco', () => {
       const text = readFileSync(f, 'utf8').replace(/\/\/.*$/gm, '');
       expect(text, f).not.toMatch(/supabase|SERVICE_ROLE|createSupabaseStore|process\.env\.[A-Z_]*(KEY|TOKEN|SECRET)/i);
     }
+  });
+});
+
+describe('tag fee: só observação, em toda a cadeia', () => {
+  it('feeTag segue até a tela e o planejador sem virar preço, gratuidade, custo zero ou filtro', () => {
+    const item = { id: 'osm:node/9', provider: 'osm', name: 'Camping X', category: 'camping', osmKind: 'camp_site', lat: 1, lon: 2, amenities: {}, feeTag: 'no', prices: [], sources: [{ provider: 'osm', name: 'OpenStreetMap', license: 'ODbL 1.0', attribution: 'x', originalId: 'node/9', collectedAt: NOW.toISOString() }], pricing: { class: 'unavailable' } };
+    const rec = toLegacyRecord(item, 'noPrice');
+    expect(rec).toMatchObject({ feeTag: 'no', price: null, chargeText: null });
+    expect(filterLodgings([rec], { maxPrice: 1000 }).records).toEqual([]); // sem preço verificável, sai do filtro de preço
+    const entry = buildStayEntry(rec, 'camping', NOW);
+    expect(entry.cost).toMatchObject({ status: 'unknown', price: null, feeTag: 'no' });
+    const s = planSummary({ days: '2', items: [], stays: [entry] }, NOW);
+    expect(s.knownTotal).toBe(0);
+    expect(s.confirmedTotal + s.estimatedTotal).toBe(0);
   });
 });

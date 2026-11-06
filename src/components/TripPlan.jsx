@@ -193,7 +193,7 @@ function costLabel(cost) {
     case COST_STATUS.PAID_UNKNOWN:
       return 'Paga · valor não informado';
     default:
-      return 'Custo não informado';
+      return `Custo não informado${cost.feeTag ? ` · a fonte marca fee=${cost.feeTag} (observação, não é preço)` : ''}`;
   }
 }
 

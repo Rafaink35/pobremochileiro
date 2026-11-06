@@ -96,9 +96,10 @@ describe('classificação do preço (prazos: 30 dias confirmado, 180 dias public
     expect(classifyStayPrice({ ...base, status: 'estimate', observedAt: at(1) }, NOW).class).toBe('unavailable');
     expect(classifyStayPrice(null, NOW).class).toBe('unavailable');
   });
-  it('gratuito segundo a fonte também depende da data; não é comparável', () => {
-    const p = classifyStayPrice({ status: 'published', free: true, observedAt: at(5) }, NOW);
-    expect(p).toMatchObject({ class: 'published', free: true, comparable: false });
+  it('não existe preço "gratuito" nem zero: free, valor 0 ou sem valor são indisponíveis', () => {
+    expect(classifyStayPrice({ status: 'published', free: true, observedAt: at(5) }, NOW).class).toBe('unavailable');
+    expect(classifyStayPrice({ ...base, status: 'published', amount: 0, observedAt: at(5) }, NOW).class).toBe('unavailable');
+    expect(classifyStayPrice({ status: 'published', observedAt: at(5) }, NOW).class).toBe('unavailable');
   });
   it('unidade sem "por noite" não é comparável', () => {
     expect(classifyStayPrice({ ...base, status: 'published', observedAt: at(1), unit: null }, NOW).comparable).toBe(false);

@@ -17,7 +17,7 @@ export function toStayRecord(a, { collectedAt }) {
   return {
     id: `community:${a.id}`, provider: 'community', sourceId: a.id, name: a.name, category: a.category, osmKind: null, lat: a.lat ?? null, lon: a.lon ?? null,
     address: a.address ?? null, city: a.city ?? null, region: a.region ?? null, country: a.country ?? null, website: a.website ?? null, phone: null, email: null,
-    stars: null, openingHours: null, access: null, amenities: {}, tents: null, caravans: null, fee: 'unknown', priceText: null, openStatus: 'unknown', prices, sources: [source],
+    stars: null, openingHours: null, access: null, amenities: {}, tents: null, caravans: null, feeTag: null, priceText: null, openStatus: 'unknown', prices, sources: [source],
   };
 }
 

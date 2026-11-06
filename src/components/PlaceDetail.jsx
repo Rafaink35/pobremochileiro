@@ -28,15 +28,9 @@ const KIND_LABEL = { camp_site: 'Camping', caravan_site: 'Área de motorhome/car
 
 function CampingInfo({ c }) {
   const classified = c.pricing && c.pricing.class !== 'unavailable' ? describePricing(c.pricing) : null;
-  const feeText = classified
-    ? classified
-    : c.fee === 'free'
-      ? 'gratuito, segundo a fonte'
-      : c.fee === 'paid'
-        ? c.chargeText
-          ? `pago · ${c.chargeText} (unidade não informada)`
-          : 'pago · valor não informado'
-        : 'não informado';
+  // Preço só de valor explícito (`charge`, com moeda). A tag `fee` é observação: não é preço, gratuidade nem custo zero.
+  const feeText = classified ?? (c.chargeText ? `valor mencionado na fonte: ${c.chargeText} (unidade e data do preço não informadas)` : 'não informado');
+  const feeNote = c.feeTag ? `a fonte marca fee=${c.feeTag}: é uma observação sobre o local, não o preço da diária nem confirmação de gratuidade` : null;
   return (
     <>
       <Row label="Tipo">{KIND_LABEL[c.kind] ?? 'Hospedagem'}{c.stars ? ` · ${c.stars} estrela(s)` : ''}</Row>
@@ -48,6 +42,7 @@ function CampingInfo({ c }) {
         </>
       )}
       <Row label="Preço">{feeText}</Row>
+      {feeNote && <Row label="Tag fee (observação)">{feeNote}</Row>}
       {c.registries?.includes('cadastur') && <Row label="Registro oficial">Cadastrado no Cadastur (Ministério do Turismo)</Row>}
       <ul className="amenity-list">
         {Object.entries(AMENITY_LABEL).map(([k, label]) => (

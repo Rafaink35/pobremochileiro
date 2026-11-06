@@ -31,9 +31,11 @@ describe('Stay Finder: destinos de validação', () => {
   it('Lisboa: o hostel com preço publicado entra no ranking; o hotel com preço antigo é "desatualizado"; sem preço nunca é ranqueado', async () => {
     const r = await service(fakeFetch()).search({ query: 'Lisboa', categories: 'camping,hostel,pousada,hotel' });
     expect(r.groups.ranked.map((i) => i.name)).toEqual(['Hostel Exemplo Alfama']);
-    expect(r.groups.withPrice.map((i) => i.name)).toEqual(['Parque de Campismo Fictício']); // gratuito: com preço, sem ranking
+    expect(r.groups.withPrice).toEqual([]);
     expect(r.groups.stalePrice.map((i) => i.name)).toEqual(['Hotel Fictício Chiado']);
-    expect(r.groups.noPrice.map((i) => i.name)).toEqual(['Casa de Hóspedes Teste']);
+    // `fee=no` do campismo é só observação: sem preço, sem gratuidade, sem ranking
+    expect(r.groups.noPrice.map((i) => i.name)).toEqual(['Casa de Hóspedes Teste', 'Parque de Campismo Fictício']);
+    expect(r.groups.noPrice.find((i) => i.name === 'Parque de Campismo Fictício')).toMatchObject({ feeTag: 'no', pricing: { class: 'unavailable', amount: null } });
     expect(r.rankNotes.join(' ')).toMatch(/Só 1 opção/);
   });
 
@@ -70,7 +72,7 @@ describe('Stay Finder: destinos de validação', () => {
     const names = all(r.groups).map((i) => i.name);
     expect(names).toEqual(expect.arrayContaining(['渋谷ゲストハウス', 'ホステル浅草', 'ゲストハウス上野', 'キャンプ場 多摩']));
     expect(r.groups.ranked.map((i) => i.pricing.currency)).toEqual(['JPY']);
-    expect(r.groups.noPrice.length).toBe(2);
+    expect(r.groups.noPrice.length).toBe(3); // inclui o camping com fee=no, que não é preço nem gratuidade
   });
 
   it('ecovila e hospedagem colaborativa: sem fonte aberta, resposta honesta e vazia', async () => {

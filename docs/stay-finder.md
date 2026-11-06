@@ -44,8 +44,12 @@ continuam como estavam. **A categoria nunca é deduzida de palavras no nome.** O
 | Desatualizado | Era confirmado ou publicado e o prazo (ou `validUntil`) venceu |
 | Indisponível | Sem valor, moeda **e data de observação da fonte** |
 
-A data de um preço do OSM é a da última edição do elemento (a idade real do preço é desconhecida). A unidade (por pessoa ou por
-quarto, por noite) só vale se estiver escrita na fonte. Estimativa nunca é aceita. "Gratuito" (`fee=no`) é um valor publicado, sem unidade, e não entra no ranking.
+A data de um preço do OSM é a da tag `check_date:charge`, quando existir (a data de edição do objeto não vale). A unidade (por pessoa ou por
+quarto, por noite) só vale se estiver escrita na fonte. Estimativa nunca é aceita.
+
+**A tag `fee` do OpenStreetMap nunca é preço, gratuidade, custo zero, filtro nem critério de ranking.** Ela fica em `feeTag` (valor bruto) e a tela a mostra como observação ("a fonte marca fee=…; não é o preço da diária"). Não existe preço "gratuito" ou zero no Stay Finder, no planejador, no motor da Etapa 1 nem nas ferramentas de chat.
+
+**A data de edição do objeto OSM não é a data do preço.** O preço do OSM só tem data quando a tag `check_date:charge` traz a verificação do preço; sem ela o preço é "indisponível" (o texto original continua visível).
 
 ## Ranking
 Concorrem só preços confirmados ou publicados, dentro do prazo, comparáveis (mesma moeda e unidade por noite). 1 opção: mostra 1; 2: mostra 2;
@@ -94,3 +98,13 @@ Alteração em `supabase/national-layer.sql`: **apenas o arquivo** (tipos `ecovi
 
 ## Validação real
 Ver `docs/stay-finder-validacao-real.md` (06/11/2026): Nominatim e Wikivoyage responderam; o **Overpass não respondeu** de nenhuma tentativa do ambiente de desenvolvimento; preços verificáveis encontrados: 0.
+
+## Política de tempo, novas tentativas e circuito (Overpass)
+- **Um endpoint**: `OVERPASS_URL` (padrão `overpass-api.de`). Não há consulta de `/api/status` e **não há alternância automática entre espelhos**. Outra instância só entra se o operador a configurar e tiver autorização dela.
+- **Tempo**: cada requisição ao Overpass tem 65 s; o prazo total da operação (incluindo esperas) é 70 s; o limite da fonte na pesquisa é 75 s. As demais fontes têm 25 s. Como as fontes rodam em paralelo, a pesquisa termina dentro do maior limite.
+- **Novas tentativas**: erros 429, 502, 503, 504 e falhas de rede têm **no máximo 1 nova tentativa**, após no mínimo 30 s (entre 30 e 60 s). Se houver `Retry-After`, ele é respeitado (nunca se espera menos); se não couber no prazo total, não espera e devolve o erro na hora. Erros 4xx não são repetidos.
+- **Circuito**: 3 falhas seguidas pausam a fonte por 10 minutos; durante a pausa, a fonte não é chamada.
+- **Mensagem**: "OpenStreetMap (Overpass) ocupado ou indisponível (HTTP 502)", sem esconder o status.
+
+## Verificação do pacote de produção
+`npm run build:verify` (build + `scripts/check-bundle.mjs`) falha se a pasta `dist` contiver marcadores de fixtures, snapshots de validação ou frases do relatório de validação real. Testes automáticos impedem importar fixtures em código de produção e fixar números reais fora da documentação.

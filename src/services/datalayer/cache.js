@@ -57,8 +57,12 @@ export function parseRetryAfter(value, now = () => Date.now()) {
   return Number.isNaN(t) ? null : Math.max(0, t - now());
 }
 
-/** Repete em erro temporário (429, 5xx, rede) com recuo exponencial; erro definitivo (4xx) sobe na hora. */
-export async function withBackoff(fn, { retries = 3, baseMs = 1000, maxMs = 60_000, sleep = defaultSleep, random = Math.random } = {}) {
+/**
+ * Repete em erro temporário (429, 5xx, rede) com recuo exponencial; erro definitivo (4xx) sobe na hora.
+ * - `Retry-After` (retryAfterMs) é RESPEITADO: nunca se espera menos do que o servidor pediu.
+ * - `deadlineAt` (ms, relógio de `now`) é o prazo total: se a espera não cabe nele, não repete e o erro sobe com o status original.
+ */
+export async function withBackoff(fn, { retries = 3, baseMs = 1000, maxMs = 60_000, sleep = defaultSleep, random = Math.random, now = () => Date.now(), deadlineAt = Infinity } = {}) {
   let attempt = 0;
   for (;;) {
     try {
@@ -68,7 +72,8 @@ export async function withBackoff(fn, { retries = 3, baseMs = 1000, maxMs = 60_0
       const temporary = status === undefined || status === 429 || status >= 500;
       if (!temporary || attempt >= retries) throw err;
       const exp = Math.min(maxMs, baseMs * 2 ** attempt);
-      const wait = err.retryAfterMs != null ? Math.min(maxMs, err.retryAfterMs) : exp / 2 + random() * (exp / 2);
+      const wait = err.retryAfterMs != null ? err.retryAfterMs : exp / 2 + random() * (exp / 2);
+      if (now() + wait > deadlineAt) throw err; // não cabe no prazo total
       await sleep(wait);
       attempt += 1;
     }

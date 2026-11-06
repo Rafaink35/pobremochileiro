@@ -10,7 +10,7 @@ describe('adicionar ao planejador', () => {
   it('guarda destino, custo, transporte não calculado, contato e fonte com data', () => {
     const e = buildStayEntry(camp({ fee: 'no', website: 'https://c.example' }), 'camping', NOW);
     expect(e).toMatchObject({ id: 'camping:osm:node/1', lat: -27.6, lon: -48.5 });
-    expect(e.cost.status).toBe(COST_STATUS.FREE);
+    expect(e.cost).toMatchObject({ status: COST_STATUS.UNKNOWN, price: null, feeTag: 'no' }); // fee=no é observação: não é gratuidade
     expect(e.transport.status).toBe(TRANSPORT_STATUS.NOT_CALCULATED);
     expect(e.contact.website).toBe('https://c.example');
     expect(e.source).toMatchObject({ license: 'ODbL 1.0', verifiedAt: '2026-10-28T12:00:00.000Z' });
@@ -23,9 +23,10 @@ describe('adicionar ao planejador', () => {
     expect(r2.added).toBe(false);
     expect(r2.draft.stays).toHaveLength(1);
   });
-  it('custo: gratuito, pago com referência, pago sem valor, desconhecido', () => {
+  it('custo: só valor explícito (charge) vira referência; a tag fee nunca define custo', () => {
     expect(buildStayEntry(camp({ fee: 'yes', charge: '30 BRL' }), 'camping', NOW).cost.status).toBe(COST_STATUS.PAID_REFERENCE);
-    expect(buildStayEntry(camp({ fee: 'yes' }), 'camping', NOW).cost.status).toBe(COST_STATUS.PAID_UNKNOWN);
+    expect(buildStayEntry(camp({ fee: 'yes' }), 'camping', NOW).cost).toMatchObject({ status: COST_STATUS.UNKNOWN, feeTag: 'yes' });
+    expect(buildStayEntry(camp({ fee: 'no' }), 'camping', NOW).cost.status).toBe(COST_STATUS.UNKNOWN);
     expect(buildStayEntry(camp({}), 'camping', NOW).cost.status).toBe(COST_STATUS.UNKNOWN);
   });
   it('work exchange entra como troca, com fonte e verificação', () => {
@@ -58,11 +59,20 @@ describe('resumo: nunca trata total parcial como completo', () => {
     expect(s.unknown).toContain('Ônibus');
   });
   it('só fica completo com tudo informado e transporte confirmado', () => {
-    let e = buildStayEntry(camp({ fee: 'no' }), 'camping', NOW);
+    // Só troca de trabalho tem hospedagem sem custo em reais; a tag fee=no de um camping nunca completa o total.
+    const o = normalizeOpportunity({ id: 'w2', host_name: 'Hostel', lat: -22, lon: -43, status: 'approved', approved_at: '2026-10-01T00:00:00Z' });
+    let e = buildStayEntry(o, 'work_exchange', NOW);
     e = { ...e, transport: { status: TRANSPORT_STATUS.CONFIRMED } };
     const s = planSummary({ items: [{ category: 'Comida', label: 'x', amount: '50,00' }], stays: [e], budget: '' });
     expect(s.complete).toBe(true);
     expect(s.knownTotal).toBe(50);
+  });
+  it('camping com fee=no continua pendente: não vira custo zero nem completa o total', () => {
+    let e = buildStayEntry(camp({ fee: 'no' }), 'camping', NOW);
+    e = { ...e, transport: { status: TRANSPORT_STATUS.CONFIRMED } };
+    const s = planSummary({ items: [{ category: 'Comida', label: 'x', amount: '50,00' }], stays: [e] });
+    expect(s.complete).toBe(false);
+    expect(s.unknown.join(' ')).toMatch(/Hospedagem: Camp/);
   });
   it('hospedagem paga com valor de referência fica fora do total e é marcada como pendente', () => {
     const e = buildStayEntry(camp({ fee: 'yes', charge: '30 BRL' }), 'camping', NOW);

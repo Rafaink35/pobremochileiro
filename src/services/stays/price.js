@@ -77,20 +77,19 @@ const isoOrNull = (v) => {
 };
 
 /**
- * Classifica UM preço observado. `price`: { status: 'confirmed'|'published', amount, currency, unit, observedAt, validUntil, free }.
- * `free: true` = a fonte diz que é gratuito (sem valor numérico). Estimativa não é aceita.
- * Devolve { class, label, amount, currency, unit, free, observedAt, expiresAt, ageDays, comparable }.
+ * Classifica UM preço observado. `price`: { status: 'confirmed'|'published', amount, currency, unit, observedAt, validUntil }.
+ * Estimativa não é aceita. Não existe preço "gratuito" ou zero: valor precisa ser maior que zero (a tag `fee` do OSM nunca entra aqui).
+ * Devolve { class, label, amount, currency, unit, observedAt, expiresAt, ageDays, comparable }.
  */
 export function classifyStayPrice(price, now = new Date()) {
-  const unavailable = { class: PRICE_CLASS.UNAVAILABLE, label: PRICE_CLASS_LABEL.unavailable, amount: null, currency: null, unit: null, free: false, observedAt: null, expiresAt: null, ageDays: null, comparable: false };
+  const unavailable = { class: PRICE_CLASS.UNAVAILABLE, label: PRICE_CLASS_LABEL.unavailable, amount: null, currency: null, unit: null, observedAt: null, expiresAt: null, ageDays: null, comparable: false };
   if (!price || !['confirmed', 'published'].includes(price.status)) return unavailable;
   const observedAt = isoOrNull(price.observedAt);
   if (!observedAt) return unavailable; // sem data da fonte não dá para saber a idade do preço
   const nowMs = now.getTime();
   if (Date.parse(observedAt) > nowMs + DAY_MS) return unavailable; // data no futuro: dado inválido
-  const free = price.free === true;
-  const amount = free ? 0 : Number(price.amount);
-  if (!free && !(Number.isFinite(amount) && amount > 0 && /^[A-Z]{3}$/.test(String(price.currency ?? '')))) return unavailable;
+  const amount = Number(price.amount);
+  if (!(Number.isFinite(amount) && amount > 0 && /^[A-Z]{3}$/.test(String(price.currency ?? '')))) return unavailable;
   const maxDays = VALIDITY_DAYS[price.status];
   let expiresMs = Date.parse(observedAt) + maxDays * DAY_MS;
   const validUntil = isoOrNull(price.validUntil);
@@ -99,9 +98,9 @@ export function classifyStayPrice(price, now = new Date()) {
   const cls = stale ? PRICE_CLASS.STALE : price.status === 'confirmed' ? PRICE_CLASS.CONFIRMED : PRICE_CLASS.PUBLISHED;
   const unit = price.unit && ['person', 'room'].includes(price.unit.basis) && price.unit.period === 'night' ? { basis: price.unit.basis, period: 'night' } : null;
   return {
-    class: cls, label: PRICE_CLASS_LABEL[cls], amount, currency: free ? null : price.currency, unit: free ? null : unit, free,
+    class: cls, label: PRICE_CLASS_LABEL[cls], amount, currency: price.currency, unit,
     observedAt, expiresAt: new Date(expiresMs).toISOString(), ageDays: Math.floor((nowMs - Date.parse(observedAt)) / DAY_MS),
-    originalStatus: price.status, comparable: !free && Boolean(unit),
+    originalStatus: price.status, comparable: Boolean(unit),
   };
 }
 

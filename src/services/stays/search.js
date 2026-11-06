@@ -8,7 +8,8 @@ import { rankStays } from './rank.js';
 import { haversineMeters, validateCoordinates } from '../geo.js';
 
 const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('tempo esgotado'), { timeout: true })), ms))]);
-const friendly = (err) => (err?.timeout ? 'tempo esgotado' : err?.status ? `a fonte respondeu ${err.status}` : `sem resposta da fonte${err?.cause?.code ? ` (${err.cause.code})` : err?.code ? ` (${err.code})` : ''}`);
+const BUSY_STATUS = new Set([429, 502, 503, 504]);
+const friendly = (err, name = 'A fonte') => (err?.timeout || err?.name === 'TimeoutError' || err?.name === 'AbortError' ? 'tempo esgotado' : BUSY_STATUS.has(err?.status) ? `${name} ocupado ou indisponível (HTTP ${err.status})` : err?.status ? `a fonte respondeu ${err.status}` : `sem resposta da fonte${err?.cause?.code ? ` (${err.cause.code})` : err?.code ? ` (${err.code})` : ''}`);
 const GEOCODER_SOURCE = Object.freeze({ id: 'nominatim', name: 'Nominatim (OpenStreetMap)', license: 'ODbL 1.0', attribution: '© OpenStreetMap contributors', url: 'https://operations.osmfoundation.org/policies/nominatim/' });
 
 const CATEGORY_NOTE = {
@@ -16,7 +17,11 @@ const CATEGORY_NOTE = {
   colaborativa: 'Hospedagem colaborativa (Couchsurfing, Worldpackers, Workaway...) não tem dados abertos: use os sites diretamente. As oportunidades aprovadas de trabalho em troca estão na aba própria.',
 };
 
-export function createStaySearch({ resolver, sources, cache = createStaleCache(), breaker = createBreaker(), now = () => new Date(), timeoutMs = 25_000 }) {
+/**
+ * Tempo máximo por fonte: `timeoutMs` (25 s) ou o valor de `sourceTimeoutMs[id]` (ex.: Overpass, 75 s). As fontes rodam em paralelo,
+ * então o tempo total da pesquisa (depois de localizar o destino) é o maior desses limites.
+ */
+export function createStaySearch({ resolver, sources, cache = createStaleCache(), breaker = createBreaker(), now = () => new Date(), timeoutMs = 25_000, sourceTimeoutMs = {} }) {
   async function runSource(source, { destination, categories }) {
     const meta = source.describe();
     const base = { id: meta.id, name: meta.name, license: meta.license, licenseUrl: meta.licenseUrl ?? null, attribution: meta.attribution, url: meta.url ?? null };
@@ -28,13 +33,13 @@ export function createStaySearch({ resolver, sources, cache = createStaleCache()
     if (hit?.fresh) return fromHit('ok');
     if (breaker.isOpen(meta.id)) return hit ? fromHit('stale') : { ...base, status: 'failed', error: 'fonte em pausa após falhas seguidas', records: [] };
     try {
-      const out = await withTimeout(source.search({ destination, categories }), timeoutMs);
+      const out = await withTimeout(source.search({ destination, categories }), sourceTimeoutMs[meta.id] ?? timeoutMs);
       cache.set(key, out);
       breaker.success(meta.id);
       return { ...base, status: 'ok', records: out.records, note: out.note ?? null, collectedAt: out.collectedAt, fromCache: false, rejected: out.rejected ?? 0 };
     } catch (err) {
       breaker.failure(meta.id);
-      return hit ? { ...fromHit('stale'), error: friendly(err) } : { ...base, status: 'failed', error: friendly(err), records: [] };
+      return hit ? { ...fromHit('stale'), error: friendly(err, meta.name) } : { ...base, status: 'failed', error: friendly(err, meta.name), records: [] };
     }
   }
 

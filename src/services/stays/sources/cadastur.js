@@ -14,7 +14,7 @@ export function toStayRecord(e, { collectedAt }) {
   return {
     id: `cadastur:${e.source_id}`, provider: 'cadastur', sourceId: e.source_id, name: e.name, category, osmKind: null, lat: null, lon: null, address: e.address,
     city: e.city, region: e.state, country: 'BR', website: e.website, phone: e.phone, email: null, stars: null, openingHours: null, access: null,
-    amenities: {}, tents: null, caravans: null, fee: 'unknown', priceText: null, openStatus: 'unknown', registry: 'cadastur', prices: [], sources: [source],
+    amenities: {}, tents: null, caravans: null, feeTag: null, priceText: null, openStatus: 'unknown', registry: 'cadastur', prices: [], sources: [source],
   };
 }
 

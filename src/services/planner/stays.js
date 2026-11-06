@@ -18,14 +18,12 @@ export const TRANSPORT_STATUS = Object.freeze({
   CONFIRMED: 'confirmed', // confirmado pelo próprio usuário
 });
 
+// A tag `fee` do OpenStreetMap NÃO define custo: nem gratuito, nem pago. Só um valor explícito (`charge`, com moeda) vira referência;
+// sem ele o custo é desconhecido. A tag fica guardada em `feeTag`, só como observação.
 function campingCost(c) {
-  if (c.fee === 'free') return { status: COST_STATUS.FREE, price: null };
-  if (c.fee === 'paid') {
-    return c.price
-      ? { status: COST_STATUS.PAID_REFERENCE, price: c.price, text: c.chargeText }
-      : { status: COST_STATUS.PAID_UNKNOWN, price: null, text: c.chargeText };
-  }
-  return { status: COST_STATUS.UNKNOWN, price: null };
+  const feeTag = c.feeTag ?? null;
+  if (c.price) return { status: COST_STATUS.PAID_REFERENCE, price: c.price, text: c.chargeText, feeTag };
+  return { status: COST_STATUS.UNKNOWN, price: null, ...(c.chargeText && { text: c.chargeText }), feeTag };
 }
 
 /** Monta a entrada do planejador a partir de um camping ou de uma oportunidade de work exchange. */

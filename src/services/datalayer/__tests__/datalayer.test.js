@@ -124,7 +124,8 @@ describe('OpenStreetMap: normalização', () => {
     expect(records[0]).toMatchObject({ id: 'osm:node/1', state: 'SC', address: 'Rua X, 10', license: 'ODbL 1.0', attribution: '© OpenStreetMap contributors', origin_kind: 'open', last_verified_at: null, status: 'unverified', phone: null, website: null });
     expect(records[0].source_url).toBe('https://www.openstreetmap.org/node/1');
     expect(records[1].extra.osm_tourism).toBe('motel');
-    expect(records[3].facilities).toMatchObject({ tents: true, fee: 'free', shower: null });
+    expect(records[3].facilities).toMatchObject({ tents: true, fee_tag: 'no', shower: null });
+    expect(records[3].facilities).not.toHaveProperty('fee');
     expect(records[0].extra.osm_last_edit).toBe('2026-09-01T10:00:00Z');
   });
   it('rejeita sem nome, sem coordenadas e fora do escopo, contando o motivo; não trata a falta de dado como inexistência', () => {

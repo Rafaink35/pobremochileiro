@@ -49,15 +49,26 @@ describe('fonte OpenStreetMap do Stay Finder', () => {
     const out = await osmSource(fakeFetch()).search({ destination: dest('lisboa'), categories: ['camping', 'hostel', 'pousada', 'hotel'] });
     const by = (n) => out.records.find((r) => r.name === n);
     expect(by('Hostel Exemplo Alfama').prices[0]).toMatchObject({ status: 'published', amount: 18, currency: 'EUR', unit: { basis: 'person', period: 'night' } });
-    expect(by('Parque de Campismo Fictício').prices[0]).toMatchObject({ free: true });
+    expect(by('Parque de Campismo Fictício').prices).toEqual([]); // fee=no é só observação
+    expect(by('Parque de Campismo Fictício').feeTag).toBe('no');
     expect(by('Casa de Hóspedes Teste').prices).toEqual([]);
     const ba = await osmSource(fakeFetch()).search({ destination: dest('buenosAires'), categories: ['hostel'] });
     expect(ba.records.find((r) => r.name === 'Albergue Ejemplo Palermo').prices[0]).toMatchObject({ amount: 12500, currency: 'ARS' });
     expect(ba.records.find((r) => r.name === 'Hostel Sin Precio San Telmo').prices).toEqual([]);
   });
-  it('preço sem data de edição na fonte não é considerado (a idade seria desconhecida)', () => {
-    const r = toStayRecord({ type: 'node', id: 1, lat: 1, lon: 1, tags: { tourism: 'hostel', name: 'X', charge: '10 EUR per person per night' } }, { collectedAt: NOW.toISOString() });
-    expect(r.prices[0].observedAt).toBeNull(); // será "indisponível" na classificação
+  it('a data de edição do objeto OSM NÃO é a data do preço: sem check_date:charge o preço fica sem data (indisponível)', () => {
+    const el = { type: 'node', id: 1, lat: 1, lon: 1, timestamp: '2026-10-30T00:00:00Z', tags: { tourism: 'hostel', name: 'X', charge: '10 EUR per person per night' } };
+    const semData = toStayRecord(el, { collectedAt: NOW.toISOString() });
+    expect(semData.prices[0].observedAt).toBeNull(); // será "indisponível" na classificação
+    expect(semData.sources[0].lastEditedAt).toBe('2026-10-30T00:00:00Z'); // só informação sobre o objeto
+    const comData = toStayRecord({ ...el, tags: { ...el.tags, 'check_date:charge': '2026-09-15' } }, { collectedAt: NOW.toISOString() });
+    expect(comData.prices[0].observedAt).toBe('2026-09-15T00:00:00.000Z');
+    expect(toStayRecord({ ...el, tags: { ...el.tags, 'check_date:charge': 'ontem' } }, { collectedAt: NOW.toISOString() }).prices[0].observedAt).toBeNull();
+  });
+  it.each(['yes', 'no', 'donation'])('fee=%s nunca gera preço, gratuidade nem custo zero em nenhuma fonte', (fee) => {
+    const r = toStayRecord({ type: 'node', id: 2, lat: 1, lon: 1, timestamp: '2026-10-30T00:00:00Z', tags: { tourism: 'camp_site', name: 'C', fee, 'check_date:charge': '2026-10-01' } }, { collectedAt: NOW.toISOString() });
+    expect(r.feeTag).toBe(fee);
+    expect(r.prices).toEqual([]);
   });
   it('ecovila e hospedagem colaborativa não têm marcação no OSM: a fonte não se aplica', () => {
     expect(osmSource(fakeFetch()).supports(['ecovila', 'colaborativa']).ok).toBe(false);

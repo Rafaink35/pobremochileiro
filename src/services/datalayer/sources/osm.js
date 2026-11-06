@@ -100,7 +100,7 @@ export function normalizeElements(elements, { scope, collectedAt, now }) {
         country: /^[A-Za-z]{2}$/.test(tags['addr:country'] ?? '') ? tags['addr:country'] : scope.kind === 'uf' || scope.kind === 'municipio' ? 'BR' : null,
         phone: base.phone,
         website: base.website,
-        facilities: { ...base.amenities, tents: base.tents, caravans: base.caravans, fee: base.fee, charge: base.chargeText, opening_hours: base.openingHours },
+        facilities: { ...base.amenities, tents: base.tents, caravans: base.caravans, fee_tag: base.feeTag, charge: base.chargeText, opening_hours: base.openingHours },
         source: 'osm',
         source_id: id,
         source_url: base.source.sourceUrl,
@@ -128,19 +128,28 @@ export function createOsmAdapter({
   limiter = createRateLimiter({ minIntervalMs: 5000 }),
   sleep,
   retries = 3,
+  baseMs = 1000, // espera base entre tentativas (a espera real fica entre baseMs/2 e baseMs, ou o Retry-After)
+  maxMs = 60_000,
+  requestTimeoutMs = null, // tempo máximo de CADA requisição (null = sem limite; o job de sincronização usa timeout de 180 s do próprio Overpass)
+  deadlineMs = null, // prazo TOTAL da operação, esperas incluídas (null = sem limite)
 } = {}) {
   async function fetchRaw(scope) {
     const query = buildQuery(scope);
     const key = `${endpoint}|${query}`;
     const hit = cache.get(key);
     if (hit) return { elements: hit, fromCache: true };
-    const elements = await limiter.run(() =>
-      withBackoff(
+    const elements = await limiter.run(() => {
+      const startedAt = now().getTime();
+      const deadlineAt = deadlineMs ? startedAt + deadlineMs : Infinity;
+      return withBackoff(
         async () => {
+          const remaining = deadlineAt - now().getTime();
+          const signalMs = requestTimeoutMs ? Math.max(1000, Math.min(requestTimeoutMs, remaining)) : null;
           const res = await fetchImpl(endpoint, {
             method: 'POST',
             headers: { 'content-type': 'application/x-www-form-urlencoded', ...(contact && { 'user-agent': `PobreMochileiro/0.2 (${contact})` }) },
             body: `data=${encodeURIComponent(query)}`,
+            ...(signalMs && { signal: AbortSignal.timeout(signalMs) }),
           });
           if (!res.ok) throw new HttpError(res.status, parseRetryAfter(res.headers?.get?.('retry-after'), () => now().getTime()));
           const json = await res.json();
@@ -148,9 +157,9 @@ export function createOsmAdapter({
           if (json.elements.length === 0 && /runtime error|timed out|out of memory/i.test(json.remark ?? '')) throw new HttpError(504);
           return json.elements;
         },
-        { retries, sleep },
-      ),
-    );
+        { retries, baseMs, maxMs, sleep, now: () => now().getTime(), deadlineAt },
+      );
+    });
     cache.set(key, elements);
     return { elements, fromCache: false };
   }

@@ -29,10 +29,11 @@ describe('base de conhecimento', () => {
     expect(r.kb.transportOptions.find((t) => t.id === 'x')).toBeUndefined();
     expect(loadKnowledgeBase(null).kb.destinations).toEqual([]);
   });
-  it('adaptadores: camping gratuito do OSM é preço publicado 0; preço com unidade desconhecida fica desconhecido', () => {
+  it('adaptadores: a tag fee NUNCA gera preço (nem zero); preço com unidade desconhecida fica desconhecido', () => {
     const el = (tags) => normalizeOsmElement({ type: 'node', id: 1, lat: -22.9, lon: -43.2, tags: { tourism: 'camp_site', name: 'C', ...tags } }, { collectedAt: '2026-10-20T10:00:00.000Z' });
     const free = lodgingFromCamping(el({ fee: 'no' }), 'serra');
-    expect(free.price).toMatchObject({ status: 'published', amount: 0, origin: { sourceId: 'osm' } });
+    expect(free.price).toMatchObject({ status: 'unknown', amount: null });
+    expect(lodgingFromCamping(el({ fee: 'yes' }), 'serra').price).toMatchObject({ status: 'unknown', amount: null });
     const paid = lodgingFromCamping(el({ fee: 'yes', charge: '30 BRL' }), 'serra');
     expect(paid.price).toMatchObject({ status: 'unknown', amount: null });
     expect(paid.price.note).toMatch(/unidade não informada/);

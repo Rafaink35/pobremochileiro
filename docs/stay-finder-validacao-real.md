@@ -79,7 +79,9 @@ Textos de preço reais da mesma página (listagens sem coordenadas): `From R$300
 
 ---
 
-## Validação do Overpass no Windows do dono (06/11/2026) — REAL
+## Validação do Overpass no Windows do dono (05/11/2026, horário local) — REAL
+
+> **Nota sobre as datas:** os três JSON foram gravados no Windows do dono em 05/11/2026 (Lisboa 22:30:19, Santiago 22:31:22, Tóquio 22:32:20, horário local, conforme `CreationTime`/`LastWriteTime` informados pelo dono). O registro da sessão recebeu os resultados em 06/11/2026 (01:34 UTC). As consultas do sandbox (Nominatim e Wikivoyage) seguem datadas em 06/11/2026 (UTC).
 
 O ambiente de desenvolvimento não alcança o Overpass (seção anterior). O dono rodou o roteiro `overpass-teste.ps1` (5 consultas, 1 a cada 10 s, uma por destino, as mesmas consultas por centro e raio do Stay Finder) no próprio computador Windows. **Esse teste usou o roteiro PowerShell, não o código do aplicativo.** Horário de cada consulta: não informado. Os cinco JSON ficaram só no computador do dono (`Documents\PobreMochileiro-Validacao`) e **não estão no repositório** (uma cópia de dados do OSM seria um banco derivado, com compartilhamento pela mesma licença, ODbL).
 
@@ -113,7 +115,7 @@ Pendente: a análise local dos JSON (contagens de nome, site, telefone, cidade, 
 
 ---
 
-## Análise local dos JSON reais do Overpass (REAL, feita pelo dono no Windows, 06/11/2026)
+## Análise local dos JSON reais do Overpass (REAL, feita pelo dono no Windows; dados coletados em 05/11/2026, resultados recebidos em 06/11/2026 UTC)
 
 Contagens informadas pelo dono por arquivo (roteiro PowerShell de análise; os JSON ficaram só no computador do dono):
 
@@ -143,7 +145,7 @@ Demonstração da ferramenta com dados **SIMULADOS** (arquivos inventados, que s
 
 ---
 
-## Validação final com os JSON reais (analisador local, REAL, 06/11/2026)
+## Validação final com os JSON reais (analisador local, REAL; dados de 05/11/2026, resultados recebidos em 06/11/2026 UTC)
 
 Esta seção registra o resultado de `scripts/analyze-overpass-json.mjs` rodado pelo dono sobre os três JSON reais do Overpass. **Os arquivos JSON não estão no repositório e não foram copiados para ele** (licença ODbL). Aqui há só contagens e métricas agregadas.
 
@@ -203,7 +205,7 @@ Tamanho da resposta (100 / 150 / 200): Lisboa 142 / 208 / 274 KB; Santiago 133 /
 
 ### Limitações
 - Três destinos, um instante no tempo; Buenos Aires e Paraty não foram revalidados no Overpass (falharam com 502 no teste do dono).
-- Os JSON são instantâneos do OSM de 06/11/2026; a cobertura varia por cidade.
+- Os JSON são instantâneos do OSM gravados em 05/11/2026 (horário local do dono); a cobertura varia por cidade.
 - Sem preço verificável nos dados OSM, o ranking de preço depende de outras fontes (publicadas, comunidade) que não entraram nesta medição.
 - `addr:city` é pouco preenchido (20% a 49%); a localização vem das coordenadas.
 - A avaliação de duplicatas é estatística (contagens e agrupamentos), sem conferência manual item a item.

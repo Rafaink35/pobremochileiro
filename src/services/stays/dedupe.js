@@ -89,7 +89,7 @@ export function groupDuplicates(records) {
   records.forEach((r, i) => buckets.set(find(i), [...(buckets.get(find(i)) ?? []), i]));
   return [...buckets.entries()].map(([root, idxs]) => {
     const members = idxs.map((i) => records[i]);
-    const primary = [...members].sort((a, b) => (a.category === UNCLASSIFIED ? 1 : 0) - (b.category === UNCLASSIFIED ? 1 : 0) || (SOURCE_PRIORITY[a.provider] ?? 9) - (SOURCE_PRIORITY[b.provider] ?? 9) || completeness(b) - completeness(a) || String(a.id).localeCompare(String(b.id)))[0];
+    const primary = [...members].sort((a, b) => (a.category === UNCLASSIFIED ? 1 : 0) - (b.category === UNCLASSIFIED ? 1 : 0) || (a.name?.trim() ? 0 : 1) - (b.name?.trim() ? 0 : 1) || (SOURCE_PRIORITY[a.provider] ?? 9) - (SOURCE_PRIORITY[b.provider] ?? 9) || completeness(b) - completeness(a) || String(a.id).localeCompare(String(b.id)))[0];
     const sources = [];
     for (const m of members) for (const s of m.sources) if (!sources.some((x) => x.provider === s.provider && x.originalId === s.originalId)) sources.push(s);
     const prices = members.flatMap((m) => m.prices ?? []);

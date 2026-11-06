@@ -112,3 +112,25 @@ Ver `docs/stay-finder-validacao-real.md` (06/11/2026): Nominatim e Wikivoyage re
 
 ## Verificação do pacote de produção
 `npm run build:verify` (build + `scripts/check-bundle.mjs`) falha se a pasta `dist` contiver marcadores de fixtures, snapshots de validação ou frases do relatório de validação real. Testes automáticos impedem importar fixtures em código de produção e fixar números reais fora da documentação.
+
+## Limite de resultados e "Mostrar mais" (P2)
+- A tela mostra **até 100 resultados no total** (não por categoria nem por seção) e, a cada clique em "Mostrar mais", **mais 50**. Teto de segurança: 500 exibidos (acima disso o botão some e a tela avisa que ainda há mais; use categoria, filtros ou um destino menor).
+- **Ordem: proximidade do centro do destino.** Proximidade não é avaliação nem qualidade, e a tela diz isso. Os "melhores preços verificados" (até 3) entram sempre e contam no total exibido.
+- A tela informa **quantos locais com nome existem, quantos são exibidos e quantos faltam**. Nenhuma categoria é eliminada: o limite vale para o total.
+- "Mostrar mais" pede ao servidor um limite maior para o mesmo destino já resolvido; as fontes ficam em cache por 24 h, então **não há nova consulta externa**.
+- Os valores (100, 50, 500) são constantes em `src/services/stays/display.js`; foram definidos a partir das medições reais abaixo.
+
+## Registros sem nome (P3)
+- Registros sem `name` **continuam no processamento** (deduplicação e classificação de preço) e na resposta (`unnamed.count` e `unnamed.items`, com id, categoria, coordenadas, distância, link da fonte e classe de preço). Nada é apagado.
+- **Não aparecem na lista principal nem no ranking de preço** (um local sem nome não pode ser indicado), e a tela informa quantos ficaram de fora.
+- Um registro sem nome que seja o mesmo local de um com nome (mesmo site ou telefone, perto) entra no grupo dele, e o principal é o que tem nome.
+- **Nomes repetidos não são duplicidade confirmada**: o mesmo nome em lugares distintos continua como locais separados; nenhum estabelecimento é excluído só pelo nome.
+
+## Análise local dos JSON (P5)
+`scripts/analyze-overpass-json.mjs` lê arquivos do Overpass **no seu computador** e executa a normalização, a deduplicação, a classificação de preço, o ranking e a seleção de exibição **reais** do Stay Finder (as mesmas funções da pesquisa).
+```
+node scripts/analyze-overpass-json.mjs <arquivo.json | pasta> [--center lat,lon] [--limit 100] [--examples 5] [--json]
+```
+- **Não acessa a rede** (fetch e conexões são bloqueados na partida; não há opção para liberar) e **não transmite nem copia** os arquivos. Imprime só contagens (nomes só com `--examples`, no terminal).
+- **Os JSON reais não vão para o Git**: use as pastas `PobreMochileiro-Validacao/` ou `validacao-local/`, ou nomes `*.overpass.json` / `overpass-*.json` (todos no `.gitignore`); um teste falha se um JSON versionado parecer resposta do Overpass.
+- Requer Node.js. No Windows sem Node, o roteiro PowerShell de análise (contagens brutas) continua sendo a alternativa.

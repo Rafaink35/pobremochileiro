@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Tent } from 'lucide-react';
 import { fetchStays } from '../api/stays.js';
 import { flattenGroups } from '../services/stays/legacy.js';
+import { PAGE_SIZE } from '../services/stays/display.js';
 import { StayResults } from '../components/StayResults.jsx';
 import { filterLodgings } from '../services/lodging/lodgingModel.js';
 import { filterOpportunities } from '../services/workExchange/opportunity.js';
@@ -41,6 +42,7 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
   const [search, setSearch] = useState(LEGACY_NOTE);
   const [filters, setFilters] = useState({ kind: 'all', state: '', city: '', amenities: {}, tents: false, maxPrice: '', hasWebsite: false });
   const [includeUnclassified, setIncludeUnclassified] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [work, setWork] = useState({ status: 'idle', rows: [] });
   const [selected, setSelected] = useState(null);
 
@@ -74,6 +76,22 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
       return setSearch({ ...LEGACY_NOTE, status: records.length || api.categoryNotes?.length ? 'ok' : 'empty', records, collectedAt: api.collectedAt, meta: api, message: records.length ? '' : api.message });
     }
     setSearch({ ...LEGACY_NOTE, status: api.status === 'unavailable' ? 'unavailable' : 'empty', message: api.message ?? 'Não foi possível pesquisar agora.' });
+  };
+
+  // "Mostrar mais": pede PAGE_SIZE locais a mais ao servidor, com o MESMO destino já resolvido (sem nova geocodificação) e as
+  // fontes em cache de 24 h. Se falhar, a lista atual fica como está.
+  const showMore = async () => {
+    const meta = search.meta;
+    if (!meta?.counts?.hasMore || loadingMore) return;
+    const d = meta.destination;
+    setLoadingMore(true);
+    const api = await fetchStays({
+      lat: d.lat, lon: d.lon, name: d.name, nameEn: d.nameEn, label: d.label, cc: d.countryCode, rc: d.regionCode, r: d.radiusM,
+      category: meta.categories.join(','), limit: Math.min(meta.counts.limit + PAGE_SIZE, meta.counts.maxLimit),
+    });
+    setLoadingMore(false);
+    if ((api.status === 'ok' || api.status === 'partial') && api.groups) setSearch((s) => ({ ...s, records: flattenGroups(api.groups), meta: api, collectedAt: api.collectedAt }));
+    else notify(api.message ?? 'Não foi possível carregar mais agora.');
   };
 
   const addToPlan = (kind, item) => {
@@ -221,6 +239,8 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
                 onOpen={(c) => setSelected({ kind: tab, item: c })}
                 onAdd={(c) => addToPlan(tab, c)}
                 inPlan={(c) => inPlan(tab, c)}
+                onMore={showMore}
+                loadingMore={loadingMore}
               />
               {['hotel', 'hostel', 'pousada'].includes(tab) && <PriceLinks tab={tab} place={place} />}
               {['ecovila', 'colaborativa'].includes(tab) && <CommunityLinks tab={tab} place={place} onNavigate={onNavigate} onWork={() => changeTab('work')} />}

@@ -110,3 +110,33 @@ Pendente: a análise local dos JSON (contagens de nome, site, telefone, cidade, 
 - **Commit `72fc13e` (P1, P4 e P6): `npm test` = 474 de 475 testes passam (1 falha).** A falha é `server/__tests__/server.test.js > não sai da pasta do site (path traversal)`, em uma pasta local `server/` **fora do repositório** (ignorada pelo git), que já falhava antes das mudanças. Não é classificado como 100% aprovado.
 - Os 37 arquivos de `src` passaram por inteiro (467 de 467) nesse commit.
 - Correção do P4 (demonstração com relógio simulado): resultado da suíte registrado na mensagem do commit e no relatório de entrega; o teste de path traversal da pasta local continua falhando, pelo mesmo motivo.
+
+---
+
+## Análise local dos JSON reais do Overpass (REAL, feita pelo dono no Windows, 06/11/2026)
+
+Contagens informadas pelo dono por arquivo (roteiro PowerShell de análise; os JSON ficaram só no computador do dono):
+
+| | Lisboa | Santiago | Tóquio | Total |
+|---|---:|---:|---:|---:|
+| Elementos | 652 | 319 | 1.311 | 2.282 |
+| Com nome | 596 (91,4%) | 299 (93,7%) | 1.204 (91,8%) | 2.099 |
+| **Sem nome** | 56 (8,6%) | 20 (6,3%) | 107 (8,2%) | 183 |
+| Com site | 347 (53%) | 64 (20%) | 442 (34%) | 853 |
+| Com telefone | 319 (49%) | 57 (18%) | 299 (23%) | 675 |
+| Com cidade (`addr:city`) | 321 (49%) | 146 (46%) | 266 (20%) | 733 |
+| Com estrelas | 179 (27%) | 12 (4%) | 57 (4%) | 248 |
+| Com horário | 25 | 8 | 35 | 68 |
+| Grupos de nomes repetidos | 14 | 9 | 40 | 63 |
+| `fee` | 3 | 0 | 2 | 5 |
+| `charge` | 0 | 0 | 0 | 0 |
+
+Leituras e decisões que decorrem dos números:
+- **Volume:** de 319 a 1.311 locais por destino. Sem limite, a resposta chegava a ~1,65 MB e a tela desenhava 1.311 itens. Decisão: 100 no total, mais 50 por clique, teto de 500 (P2).
+- **Sem nome:** 6% a 9% dos objetos. Decisão: preservar no processamento, não listar, contar (P3).
+- **Nomes repetidos (63 grupos):** não são duplicidade confirmada. Decisão: só agrupar com sinal forte (mesmo nome **e** mesmo lugar, mesmo site ou telefone); o mesmo nome em lugares diferentes continua como locais separados.
+- **Preço:** nenhum `charge` nos 2.282 registros e `fee` em 5: com dados só do OSM, **não há preço verificável** e o ranking de preço fica vazio. O aplicativo não gera preço a partir de `fee`.
+- **`addr:city` baixo (20% a 49%):** não é confiável como filtro de município; a localização vem das coordenadas.
+- **Estrelas:** só quando a tag existe (27% em Lisboa); nunca são deduzidas.
+
+Demonstração da ferramenta com dados **SIMULADOS** (arquivos inventados, que só imitam as contagens acima; **não são dados reais**), para medir o efeito do limite: com limite 100, Lisboa 589 locais com nome → 100 exibidos (56 sem nome ocultados, resposta ≈ 139 KB); Santiago 294 → 100 (20 ocultados, ≈ 130 KB); Tóquio 1.184 → 100 (107 ocultados, ≈ 149 KB). Processamento de 8 a 44 ms por arquivo. Nesses arquivos simulados, nomes repetidos em lugares distintos foram mantidos separados e os do mesmo lugar foram agrupados. Os valores reais só podem ser medidos rodando a ferramenta sobre os JSON reais.

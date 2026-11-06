@@ -32,7 +32,7 @@ export default async function handler(request, { env = process.env, service, now
   try {
     const result = await svc.search({
       query: q, lat: p.get('lat'), lon: p.get('lon'), name: p.get('name'), nameEn: p.get('nameEn'), label: p.get('label'), countryCode: p.get('cc'), regionCode: p.get('rc'),
-      radiusM: p.get('r'), categories: p.get('category'),
+      radiusM: p.get('r'), categories: p.get('category'), limit: p.get('limit'),
     });
     const status = result.status === 'invalid' ? 400 : 200;
     return json(status, result, status === 200 && result.groups ? { 'cache-control': 'public, max-age=300' } : {});

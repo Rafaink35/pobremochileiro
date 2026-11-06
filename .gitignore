@@ -4,3 +4,9 @@ dist
 .env
 .env.*
 !.env.example
+
+# Respostas REAIS do Overpass usadas na validação local: nunca no Git (dados OSM = banco derivado sob ODbL)
+PobreMochileiro-Validacao/
+validacao-local/
+*.overpass.json
+overpass-*.json

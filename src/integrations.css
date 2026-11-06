@@ -243,3 +243,4 @@ a.route-link:hover { background: #f6f0e4; border-radius: 12px; }
 .warn-banner { background: #fbe0d8; border: 1px dashed #b94e32; border-radius: 10px; padding: 8px 12px; font-size: 0.82rem; font-weight: 700; color: #7a2e1b; margin: 10px 0; }
 .nav-secondary-label { font-size: 9px; font-weight: 700; letter-spacing: 1.4px; color: #a9c4b5; margin: 18px 10px 6px; }
 .nav-item.secondary { opacity: 0.85; font-weight: 500; }
+.stay-count { font-size: 0.86rem; margin: 6px 0 10px; }

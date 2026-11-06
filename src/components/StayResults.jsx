@@ -12,7 +12,8 @@ const SOURCE_STATUS = { ok: 'consultada', stale: 'sem resposta agora, usando có
 const dateOf = (iso) => (iso ? String(iso).slice(0, 10) : null);
 
 /** Resultados do Stay Finder: seções separadas (com preço × sem preço), fontes com licença e avisos. Reaproveita as classes atuais. */
-export function StayResults({ meta, records, kindName, onOpen, onAdd, inPlan }) {
+export function StayResults({ meta, records, kindName, onOpen, onAdd, inPlan, onMore, loadingMore = false }) {
+  const counts = meta.counts ?? {};
   const visible = new Set(records.map((r) => r.id));
   return (
     <>
@@ -20,6 +21,19 @@ export function StayResults({ meta, records, kindName, onOpen, onAdd, inPlan }) 
         Resultados para <b>{meta.destination.label || meta.destination.name}</b> (raio de {Math.round(meta.destination.radiusM / 1000)} km) · pesquisa em {dateOf(meta.collectedAt)}
         {meta.status === 'partial' && ' · algumas fontes falharam (veja abaixo)'}.
       </p>
+      {counts.total > 0 && (
+        <p role="status" className="stay-count">
+          Mostrando <b>{counts.shown}</b> de <b>{counts.total}</b> locais com nome, ordenados pela <b>proximidade do centro</b> do destino (proximidade não é avaliação nem qualidade).
+          {counts.omitted > 0 && ` Faltam ${counts.omitted}.`}
+          {counts.unnamedHidden > 0 && ` ${counts.unnamedHidden} local(is) sem nome nas fontes ficaram fora da lista (continuam contados, sem nome não dá para identificá-los).`}
+        </p>
+      )}
+      {counts.capped && (
+        <p role="status" className="stay-count">Limite de exibição ({counts.maxLimit}) atingido: ainda há {counts.omitted} locais nas fontes. Escolha uma categoria, use os filtros ou um destino menor para ver os demais.</p>
+      )}
+      {counts.total === 0 && counts.unnamedHidden > 0 && (
+        <p role="status" className="stay-count">{counts.unnamedHidden} local(is) sem nome nas fontes ficaram fora da lista.</p>
+      )}
       {meta.destinationSource && (
         <p className="flights-note">Destino localizado com <a href={meta.destinationSource.url} target="_blank" rel="noopener noreferrer">{meta.destinationSource.name}</a> · licença {meta.destinationSource.license} · {meta.destinationSource.attribution}</p>
       )}
@@ -55,6 +69,13 @@ export function StayResults({ meta, records, kindName, onOpen, onAdd, inPlan }) 
           </section>
         );
       })}
+      {counts.hasMore && onMore && (
+        <p>
+          <button type="button" className="btn-outline" onClick={onMore} disabled={loadingMore}>
+            {loadingMore ? 'Carregando…' : `Mostrar mais ${counts.pageSize ?? 50}`}
+          </button>
+        </p>
+      )}
       {visible.size === 0 && !meta.message && <p>Nenhum local combina com os filtros.</p>}
       <div className="flights-note" role="note">
         <p><b>Fontes desta pesquisa</b> (atribuição e licença de cada uma):</p>

@@ -155,7 +155,7 @@ export function RouteExplorer({ onNavigate, draft, setDraft, notify }) {
     setHotels({ status: 'loading', records: [], message: '' });
     setState({ status: 'loading', error: '', options: [], origin, destination, approximate: false });
     // Consulta externa SÓ pelo servidor (/api/stays: cache, limite de requisições, fontes e licença); o navegador não fala com o Overpass.
-    fetchStays({ q: destination.osm, category: 'hotel,pousada' }).then((r) => {
+    fetchStays({ q: destination.osm, category: 'hotel,pousada', limit: 12 }).then((r) => {
       if (r.groups) setHotels({ status: 'ok', records: flattenGroups(r.groups), message: '' });
       else if (r.status === 'ambiguous' || r.status === 'broad') setHotels({ status: 'empty', records: [], message: 'Destino com mais de um lugar possível: escolha na tela Hospedagem.' });
       else setHotels({ status: r.status === 'unavailable' ? 'unavailable' : 'empty', records: [], message: r.message ?? 'Sem resultado.' });

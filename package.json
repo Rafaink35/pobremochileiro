@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "kb:validate": "node scripts/validate-kb.mjs",
     "start": "node server.mjs"
   },
   "dependencies": {

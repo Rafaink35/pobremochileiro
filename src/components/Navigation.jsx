@@ -1,19 +1,21 @@
 import { Compass, Search, Wallet, Users, Bookmark, Menu, X, Route, Tent } from 'lucide-react';
 import { Brand } from './Brand.jsx';
 
-export const NAV_ITEMS = [
+// V1: a Comunidade continua no app, mas como funcionalidade SECUNDÁRIA (grupo "Mais" no menu; fora da barra inferior).
+export const PRIMARY_NAV = [
   ['Início', Compass],
   ['Explorar', Search],
   ['Planejador', Wallet],
   ['Transporte', Route],
   ['Hospedagem', Tent],
-  ['Comunidade', Users],
 ];
+export const SECONDARY_NAV = [['Comunidade', Users]];
+export const NAV_ITEMS = [...PRIMARY_NAV, ...SECONDARY_NAV];
 
-function NavButton({ label, Icon, active, onClick }) {
+function NavButton({ label, Icon, active, onClick, secondary }) {
   return (
     <button
-      className={'nav-item ' + (active ? 'active' : '')}
+      className={'nav-item ' + (secondary ? 'secondary ' : '') + (active ? 'active' : '')}
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
     >
@@ -30,8 +32,12 @@ export function Sidebar({ screen, onNavigate }) {
       <Brand />
       <p className="sidebar-label">SEU PRÓXIMO ROLÊ</p>
       <nav aria-label="Navegação principal">
-        {NAV_ITEMS.map(([label, Icon]) => (
+        {PRIMARY_NAV.map(([label, Icon]) => (
           <NavButton key={label} label={label} Icon={Icon} active={screen === label} onClick={() => onNavigate(label)} />
+        ))}
+        <p className="nav-secondary-label">MAIS</p>
+        {SECONDARY_NAV.map(([label, Icon]) => (
+          <NavButton key={label} label={label} Icon={Icon} secondary active={screen === label} onClick={() => onNavigate(label)} />
         ))}
       </nav>
       <div className="sidebar-bottom">
@@ -89,7 +95,7 @@ export function MobileHeader({ screen, menuOpen, onToggleMenu, onNavigate }) {
 export function BottomNav({ screen, onNavigate }) {
   return (
     <nav className="bottom-nav" aria-label="Navegação principal">
-      {NAV_ITEMS.map(([label, Icon]) => (
+      {PRIMARY_NAV.map(([label, Icon]) => (
         <button
           key={label}
           className={'bottom-item ' + (screen === label ? 'active' : '')}

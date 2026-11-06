@@ -3,11 +3,21 @@
 Núcleo próprio de recomendação, **sem LLM e sem API paga**. Tudo roda no navegador, com funções puras em `src/services/trip/`.
 A tela é `#descubra` ("Descubra até onde seu dinheiro leva você", também chamada pelo banner da página inicial).
 
-> A base de conhecimento (`src/data/knowledge/base.json`) hoje tem só **estimativas editoriais** da fonte `pm-editorial`
-> (5 cenários: Rio→Paraty, Rio→São Paulo, Rio→Buenos Aires, São Paulo→Santiago, São Paulo→Lisboa; valores em reais, 06/11/2026).
-> **Nenhum preço da base é de fonte ou confirmado**: todos têm `status: estimate`, nota explicativa e aparecem como "estimativa".
-> Elas devem ser trocadas por preços de fonte (com data e licença) à medida que forem importados. Base vazia = estado vazio na tela.
-> Os dados de `src/services/trip/__tests__/fixtures.js` são fictícios e só existem nos testes.
+> **Produção:** a base (`src/data/knowledge/base.json`) está **vazia de propósito**. Sem dados reais a tela mostra "Ainda não há preços
+> verificados" e os custos aparecem como **"Preço indisponível"** (essenciais) ou **"Estimativa não disponível"** (opcionais). Nada é inventado.
+> **Fixtures:** os 5 cenários (Rio→Paraty, Rio→São Paulo, Rio→Buenos Aires, São Paulo→Santiago, São Paulo→Lisboa) existem **só para
+> desenvolvimento e testes**, em `src/services/trip/__tests__/fixtures/five-scenarios.json`, com valores fictícios e fonte marcada
+> `"fixture": true`. Para vê-los no navegador: `VITE_USE_FIXTURES=1 npm run dev` (aparece o aviso "MODO DESENVOLVIMENTO").
+> Três travas impedem que cheguem à produção: (1) `base.json` vazio; (2) `guardProductionKnowledgeBase` descarta qualquer base com fonte
+> fixture fora do modo de desenvolvimento; (3) um teste falha se código de produção importar as fixtures.
+> Os dados de `src/services/trip/__tests__/fixtures.js` também são fictícios e só existem nos testes.
+
+## Como publicar dados reais
+1. Monte o JSON no formato abaixo (fontes, origens, destinos, transportes, hospedagens, custos locais), **só com preço de fonte**.
+2. Rode `npm run kb:validate -- caminho/arquivo.json --production`: mostra erros, avisos e a **cobertura** (por destino: transporte, hospedagem,
+   alimentação, deslocamento local, preços verificados) e **bloqueia** fonte fixture.
+3. Copie o arquivo aprovado para `src/data/knowledge/base.json`. Preço sem fonte cadastrada, sem valor, unidade, moeda ou data vira "indisponível".
+Para destino sem alimentação ou deslocamento local, **omita o campo**: o motor mostra "indisponível" e o resultado fica parcial.
 
 ## Entradas do Descubra (Etapa 1)
 Além de orçamento, origem, dias, pessoas, preferências e carro, a tela aceita: **data de saída** (opcional; data passada é recusada),
@@ -15,6 +25,11 @@ Além de orçamento, origem, dias, pessoas, preferências e carro, a tela aceita
 **como prefere chegar** (modos de transporte considerados) e **tipo de hospedagem** (hostel, pousada, hotel, camping; se o tipo pedido
 não existe no destino, o motor avisa e usa a mais barata). Destinos trazem `country`, `currency` (moeda local) e `timezone`; os valores
 da tela estão sempre em reais. O destino igual à origem não é sugerido.
+
+## Quando "cabe no orçamento"
+`fit = within` só existe com **nenhum custo pendente**. Com custo desconhecido o resultado é **parcial** ("não dá para afirmar que cabe") e,
+sem nenhum preço verificável, **inconclusivo**. "Passa do orçamento" vale mesmo com pendências, porque o custo mínimo conhecido já excede.
+No planejador, a ausência de transporte, alimentação ou (havendo noites) hospedagem torna o resultado parcial (`essentialMissing`).
 
 ## Orçamento unificado
 O resumo do planejador (`planSummary`) usa o mesmo `computeBudget` da tela Descubra: confirmado/informado, estimado, reserva de

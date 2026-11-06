@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Compass } from 'lucide-react';
 import { knowledgeBase, knowledgeErrors } from '../data/knowledge/index.js';
-import { isEmptyKnowledgeBase, knownOrigins } from '../services/trip/knowledge.js';
+import { hasFixtureSources, isEmptyKnowledgeBase, knownOrigins } from '../services/trip/knowledge.js';
 import { recommend, RECOMMEND_STATUS } from '../services/trip/recommender.js';
 import { parseTripRequest, PREFERENCE_PATTERNS } from '../services/trip/requestParser.js';
 import { planFromResult } from '../services/trip/plan.js';
@@ -23,6 +23,7 @@ export function Discover({ setDraft, onNavigate }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [outcome, setOutcome] = useState(null);
   const empty = isEmptyKnowledgeBase(knowledgeBase);
+  const fixtureMode = hasFixtureSources(knowledgeBase); // só em desenvolvimento (VITE_USE_FIXTURES=1)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const toggleIn = (key) => (value) => setForm((f) => ({ ...f, [key]: f[key].includes(value) ? f[key].filter((x) => x !== value) : [...f[key], value] }));
   const togglePref = toggleIn('preferences');
@@ -72,12 +73,17 @@ export function Discover({ setDraft, onNavigate }) {
         <div className="page-doodle" aria-hidden="true"><Compass size={32} /></div>
       </div>
 
+      {fixtureMode && (
+        <p className="warn-banner" role="alert">
+          MODO DESENVOLVIMENTO: os destinos e valores desta tela são fictícios (fixtures de teste) e não são oportunidades reais.
+        </p>
+      )}
       {empty && (
         <div className="empty-state" role="status">
-          <h3>A base de viagens está vazia</h3>
+          <h3>Ainda não há preços verificados</h3>
           <p>
-            Não há destinos, preços e fontes cadastrados. Para não mostrar oferta inventada, esta tela não exibe resultados sem dados
-            (com fonte, licença e data). Enquanto isso, você pode montar o plano manualmente.
+            Não há destinos, preços e fontes cadastrados, então os custos aparecem como “Preço indisponível”. Para não mostrar oferta inventada,
+            esta tela não exibe resultados sem dados reais (com fonte, licença e data). Enquanto isso, você pode montar o plano manualmente.
           </p>
           <button className="btn-primary" onClick={() => onNavigate('Planejador')}>Ir para o planejador</button>
         </div>

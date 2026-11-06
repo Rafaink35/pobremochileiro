@@ -239,3 +239,7 @@ a.route-link:hover { background: #f6f0e4; border-radius: 12px; }
 .plan-badge.badge-unknown { background: #fbe0d8; }
 .trip-dest-meta { font-size: 0.82rem; opacity: 0.8; margin: 2px 0 6px; }
 .plan-total .trip-totals { flex-basis: 100%; margin: 6px 0 2px; }
+
+.warn-banner { background: #fbe0d8; border: 1px dashed #b94e32; border-radius: 10px; padding: 8px 12px; font-size: 0.82rem; font-weight: 700; color: #7a2e1b; margin: 10px 0; }
+.nav-secondary-label { font-size: 9px; font-weight: 700; letter-spacing: 1.4px; color: #a9c4b5; margin: 18px 10px 6px; }
+.nav-item.secondary { opacity: 0.85; font-weight: 500; }

@@ -1,0 +1,729 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "fixture-5-cenarios",
+      "name": "FIXTURE de desenvolvimento (valores fictícios)",
+      "url": "https://github.com/Rafaink35/pobremochileiro",
+      "license": "Fixture: sem valor de mercado",
+      "attribution": "Pobre Mochileiro (fixture)",
+      "obtainedAt": "2026-11-06",
+      "commercialUse": "prohibited",
+      "fixture": true,
+      "coverage": "5 cenários de validação: só desenvolvimento e testes",
+      "notes": "Valores fictícios. Nunca devem aparecer em produção."
+    }
+  ],
+  "origins": [
+    {
+      "name": "Rio de Janeiro",
+      "aliases": [
+        "rio",
+        "rj"
+      ]
+    },
+    {
+      "name": "São Paulo",
+      "aliases": [
+        "sp",
+        "sampa"
+      ]
+    }
+  ],
+  "destinations": [
+    {
+      "id": "paraty",
+      "name": "Paraty",
+      "region": "Rio de Janeiro",
+      "country": "Brasil",
+      "currency": "BRL",
+      "timezone": "America/Sao_Paulo",
+      "tags": [
+        "praia",
+        "cultura",
+        "natureza"
+      ],
+      "description": "Cidade histórica na Costa Verde, com praias, cachoeiras e passeios de barco.",
+      "dailyFood": {
+        "status": "estimate",
+        "amount": 120,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "day"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "localTransportDaily": {
+        "status": "estimate",
+        "amount": 15,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "day"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "sao-paulo",
+      "name": "São Paulo",
+      "region": "São Paulo",
+      "country": "Brasil",
+      "currency": "BRL",
+      "timezone": "America/Sao_Paulo",
+      "tags": [
+        "cidade",
+        "cultura"
+      ],
+      "description": "Maior cidade do país: museus, gastronomia e vida urbana o ano todo.",
+      "dailyFood": {
+        "status": "estimate",
+        "amount": 110,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "day"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "localTransportDaily": {
+        "status": "estimate",
+        "amount": 25,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "day"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "buenos-aires",
+      "name": "Buenos Aires",
+      "region": "Argentina",
+      "country": "Argentina",
+      "currency": "ARS",
+      "timezone": "America/Argentina/Buenos_Aires",
+      "tags": [
+        "cidade",
+        "cultura"
+      ],
+      "description": "Capital argentina: cafés, teatros, bairros históricos e vida noturna.",
+      "dailyFood": {
+        "status": "estimate",
+        "amount": 100,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "day"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "localTransportDaily": {
+        "status": "estimate",
+        "amount": 15,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "day"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "santiago",
+      "name": "Santiago",
+      "region": "Chile",
+      "country": "Chile",
+      "currency": "CLP",
+      "timezone": "America/Santiago",
+      "tags": [
+        "cidade",
+        "natureza"
+      ],
+      "description": "Capital chilena, entre a Cordilheira dos Andes e os vinhedos próximos.",
+      "dailyFood": {
+        "status": "estimate",
+        "amount": 130,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "day"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "localTransportDaily": {
+        "status": "estimate",
+        "amount": 20,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "day"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "lisboa",
+      "name": "Lisboa",
+      "region": "Portugal",
+      "country": "Portugal",
+      "currency": "EUR",
+      "timezone": "Europe/Lisbon",
+      "tags": [
+        "cidade",
+        "cultura"
+      ],
+      "description": "Capital portuguesa: bairros históricos, miradouros e acesso ao litoral.",
+      "dailyFood": {
+        "status": "estimate",
+        "amount": 180,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "day"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "localTransportDaily": {
+        "status": "estimate",
+        "amount": 25,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "day"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    }
+  ],
+  "transportOptions": [
+    {
+      "id": "rio-paraty-bus",
+      "destinationId": "paraty",
+      "origin": "Rio de Janeiro",
+      "mode": "bus",
+      "durationMinutes": 240,
+      "price": {
+        "status": "estimate",
+        "amount": 75,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "leg"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "notes": "Valor por pessoa e por trecho (o motor conta ida e volta)."
+    },
+    {
+      "id": "sp-paraty-bus",
+      "destinationId": "paraty",
+      "origin": "São Paulo",
+      "mode": "bus",
+      "durationMinutes": 330,
+      "price": {
+        "status": "estimate",
+        "amount": 110,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "leg"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "notes": "Valor por pessoa e por trecho (o motor conta ida e volta)."
+    },
+    {
+      "id": "rio-sp-bus",
+      "destinationId": "sao-paulo",
+      "origin": "Rio de Janeiro",
+      "mode": "bus",
+      "durationMinutes": 360,
+      "price": {
+        "status": "estimate",
+        "amount": 110,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "leg"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "notes": "Valor por pessoa e por trecho (o motor conta ida e volta)."
+    },
+    {
+      "id": "rio-sp-flight",
+      "destinationId": "sao-paulo",
+      "origin": "Rio de Janeiro",
+      "mode": "flight",
+      "durationMinutes": 60,
+      "price": {
+        "status": "estimate",
+        "amount": 350,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "leg"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "notes": "Valor por pessoa e por trecho (o motor conta ida e volta)."
+    },
+    {
+      "id": "rio-ba-flight",
+      "destinationId": "buenos-aires",
+      "origin": "Rio de Janeiro",
+      "mode": "flight",
+      "durationMinutes": 195,
+      "price": {
+        "status": "estimate",
+        "amount": 1000,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "leg"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "notes": "Valor por pessoa e por trecho (o motor conta ida e volta)."
+    },
+    {
+      "id": "sp-ba-flight",
+      "destinationId": "buenos-aires",
+      "origin": "São Paulo",
+      "mode": "flight",
+      "durationMinutes": 170,
+      "price": {
+        "status": "estimate",
+        "amount": 900,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "leg"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "notes": "Valor por pessoa e por trecho (o motor conta ida e volta)."
+    },
+    {
+      "id": "sp-scl-flight",
+      "destinationId": "santiago",
+      "origin": "São Paulo",
+      "mode": "flight",
+      "durationMinutes": 240,
+      "price": {
+        "status": "estimate",
+        "amount": 1100,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "leg"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "notes": "Valor por pessoa e por trecho (o motor conta ida e volta)."
+    },
+    {
+      "id": "rio-scl-flight",
+      "destinationId": "santiago",
+      "origin": "Rio de Janeiro",
+      "mode": "flight",
+      "durationMinutes": 270,
+      "price": {
+        "status": "estimate",
+        "amount": 1300,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "leg"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "notes": "Valor por pessoa e por trecho (o motor conta ida e volta)."
+    },
+    {
+      "id": "sp-lis-flight",
+      "destinationId": "lisboa",
+      "origin": "São Paulo",
+      "mode": "flight",
+      "durationMinutes": 570,
+      "price": {
+        "status": "estimate",
+        "amount": 2800,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "leg"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "notes": "Valor por pessoa e por trecho (o motor conta ida e volta)."
+    },
+    {
+      "id": "rio-lis-flight",
+      "destinationId": "lisboa",
+      "origin": "Rio de Janeiro",
+      "mode": "flight",
+      "durationMinutes": 540,
+      "price": {
+        "status": "estimate",
+        "amount": 2800,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "leg"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      },
+      "notes": "Valor por pessoa e por trecho (o motor conta ida e volta)."
+    }
+  ],
+  "lodgings": [
+    {
+      "id": "paraty-hostel",
+      "destinationId": "paraty",
+      "name": "Hostel (dormitório compartilhado), faixa estimada",
+      "kind": "hostel",
+      "tags": [],
+      "price": {
+        "status": "estimate",
+        "amount": 90,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "night"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "paraty-guesthouse",
+      "destinationId": "paraty",
+      "name": "Pousada simples, faixa estimada",
+      "kind": "guesthouse",
+      "tags": [],
+      "price": {
+        "status": "estimate",
+        "amount": 350,
+        "currency": "BRL",
+        "unit": {
+          "basis": "room",
+          "period": "night"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "paraty-camping",
+      "destinationId": "paraty",
+      "name": "Camping, faixa estimada",
+      "kind": "camping",
+      "tags": [],
+      "price": {
+        "status": "estimate",
+        "amount": 50,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "night"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "sao-paulo-hostel",
+      "destinationId": "sao-paulo",
+      "name": "Hostel (dormitório compartilhado), faixa estimada",
+      "kind": "hostel",
+      "tags": [],
+      "price": {
+        "status": "estimate",
+        "amount": 90,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "night"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "sao-paulo-hotel",
+      "destinationId": "sao-paulo",
+      "name": "Hotel simples, faixa estimada",
+      "kind": "hotel",
+      "tags": [],
+      "price": {
+        "status": "estimate",
+        "amount": 320,
+        "currency": "BRL",
+        "unit": {
+          "basis": "room",
+          "period": "night"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "buenos-aires-hostel",
+      "destinationId": "buenos-aires",
+      "name": "Hostel (dormitório compartilhado), faixa estimada",
+      "kind": "hostel",
+      "tags": [],
+      "price": {
+        "status": "estimate",
+        "amount": 90,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "night"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "buenos-aires-hotel",
+      "destinationId": "buenos-aires",
+      "name": "Hotel simples, faixa estimada",
+      "kind": "hotel",
+      "tags": [],
+      "price": {
+        "status": "estimate",
+        "amount": 380,
+        "currency": "BRL",
+        "unit": {
+          "basis": "room",
+          "period": "night"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "santiago-hostel",
+      "destinationId": "santiago",
+      "name": "Hostel (dormitório compartilhado), faixa estimada",
+      "kind": "hostel",
+      "tags": [],
+      "price": {
+        "status": "estimate",
+        "amount": 100,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "night"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "santiago-hotel",
+      "destinationId": "santiago",
+      "name": "Hotel simples, faixa estimada",
+      "kind": "hotel",
+      "tags": [],
+      "price": {
+        "status": "estimate",
+        "amount": 420,
+        "currency": "BRL",
+        "unit": {
+          "basis": "room",
+          "period": "night"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "lisboa-hostel",
+      "destinationId": "lisboa",
+      "name": "Hostel (dormitório compartilhado), faixa estimada",
+      "kind": "hostel",
+      "tags": [],
+      "price": {
+        "status": "estimate",
+        "amount": 150,
+        "currency": "BRL",
+        "unit": {
+          "basis": "person",
+          "period": "night"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    },
+    {
+      "id": "lisboa-hotel",
+      "destinationId": "lisboa",
+      "name": "Hotel simples, faixa estimada",
+      "kind": "hotel",
+      "tags": [],
+      "price": {
+        "status": "estimate",
+        "amount": 650,
+        "currency": "BRL",
+        "unit": {
+          "basis": "room",
+          "period": "night"
+        },
+        "origin": {
+          "sourceId": "fixture-5-cenarios",
+          "name": "FIXTURE de desenvolvimento (valores fictícios)"
+        },
+        "collectedAt": "2026-11-06",
+        "note": "FIXTURE de desenvolvimento: valor fictício para testes, sem fonte e sem valor de mercado. Nunca exibir como oportunidade real."
+      }
+    }
+  ],
+  "workExchanges": [],
+  "activities": []
+}

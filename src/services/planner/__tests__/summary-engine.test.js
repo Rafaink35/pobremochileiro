@@ -8,7 +8,7 @@ const item = (category, amount, extra = {}) => ({ category, label: category, amo
 
 describe('planSummary usa o motor de orçamento', () => {
   it('separa informado por você de estimado e calcula reserva e mínimo', () => {
-    const s = planSummary({ items: [item('Comida', '100'), item('Transporte', '200,00', { status: 'estimate' })], budget: '1000' }, NOW);
+    const s = planSummary({ days: '1', items: [item('Comida', '100'), item('Transporte', '200,00', { status: 'estimate' })], budget: '1000' }, NOW);
     expect(s.confirmedTotal).toBe(100);
     expect(s.estimatedTotal).toBe(200);
     expect(s.knownTotal).toBe(300);
@@ -16,6 +16,14 @@ describe('planSummary usa o motor de orçamento', () => {
     expect(s.minimumTotal).toBe(330);
     expect(s.finalCostClaim).toBe('estimated');
     expect(s.fit).toBe('within');
+    expect(s.essentialMissing).toEqual([]);
+  });
+
+  it('não afirma que cabe quando falta custo essencial: resultado parcial', () => {
+    const s = planSummary({ days: '4', items: [item('Comida', '100')], budget: '5000' }, NOW);
+    expect(s.essentialMissing).toEqual(['Transporte', 'Hospedagem']);
+    expect(s.fit).toBe('within_partial');
+    expect(s.finalCostClaim).toBe('incomplete');
   });
 
   it('desatualizado conta como estimativa e item sem valor vira pendente (nunca zero)', () => {

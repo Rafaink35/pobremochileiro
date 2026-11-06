@@ -142,10 +142,17 @@ function reasonsFor(c, req, kb, now) {
   const b = c.budget;
   const out = [];
   if (b.fit === 'over') out.push({ code: 'over_budget', text: `Custo mínimo ${brl(b.minimumTotal)} passa do orçamento de ${brl(req.budget)}.`, evidence: [] });
-  else if (b.fit === 'unknown') out.push({ code: 'no_data', text: 'Não há valores conhecidos para comparar com o orçamento.', evidence: [] });
-  else {
-    const saldoTxt = b.balance.kind === 'upper_bound' ? `saldo de no máximo ${brl(b.balance.amount)} (há custos pendentes)` : `saldo de ${brl(b.balance.amount)}`;
-    out.push({ code: b.complete ? 'within_budget' : 'within_budget_partial', text: `Custo mínimo ${brl(b.minimumTotal)} (inclui ${b.contingency.pct}% de reserva sobre o conhecido) dentro do orçamento de ${brl(req.budget)}: ${saldoTxt}.`, evidence: [] });
+  else if (b.fit === 'unknown') out.push({ code: 'no_data', text: 'Resultado inconclusivo: não há preços verificáveis para comparar com o orçamento.', evidence: [] });
+  else if (!b.complete) {
+    // Nunca afirmar que cabe quando há custo desconhecido: o resultado é parcial.
+    const essential = b.pending.filter((p) => p.essential).length;
+    out.push({
+      code: 'partial_result',
+      text: `Resultado parcial: os valores conhecidos somam ${brl(b.minimumTotal)} (com ${b.contingency.pct}% de reserva) e ${essential ? `há ${essential} custo(s) essencial(is) desconhecido(s)` : 'faltam custos'}. Não dá para afirmar que cabe nos ${brl(req.budget)}.`,
+      evidence: [],
+    });
+  } else {
+    out.push({ code: 'within_budget', text: `Custo mínimo ${brl(b.minimumTotal)} (inclui ${b.contingency.pct}% de reserva sobre o conhecido) dentro do orçamento de ${brl(req.budget)}: saldo de ${brl(b.balance.amount)}.${b.finalCostClaim === 'estimated' ? ' Atenção: parte dos valores é estimativa.' : ''}`, evidence: [] });
   }
   for (const l of b.lines.filter((x) => x.total.amount !== null && ['transport', 'lodging', 'food'].includes(x.category))) {
     const mult = l.total.multiplier;

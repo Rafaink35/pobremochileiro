@@ -15,7 +15,7 @@ const STATUS_BADGE = {
   stale: ['desatualizado (conta como estimativa)', 'estimate'],
 };
 function valueBadge(it) {
-  if (!String(it.amount ?? '').trim()) return ['valor não informado', 'unknown'];
+  if (!String(it.amount ?? '').trim()) return ['Preço indisponível', 'unknown'];
   return STATUS_BADGE[it.status] ?? ['informado por você', 'manual'];
 }
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -200,16 +200,16 @@ function costLabel(cost) {
 const CLAIM = {
   confirmed: 'Todos os valores são confirmados ou informados por você.',
   estimated: 'Há estimativas no total: o gasto real pode ser diferente.',
-  incomplete: 'Há itens sem valor: o custo real será maior ou igual ao mínimo.',
+  incomplete: 'Resultado parcial: há custos sem valor, o custo real será maior ou igual ao mínimo.',
 };
 
 function PlanTotal({ summary }) {
-  const { limit, unknown, complete, empty, knownTotal, confirmedTotal, estimatedTotal, contingency, minimumTotal, fit, finalCostClaim } = summary;
+  const { essentialMissing = [], limit, unknown, complete, empty, knownTotal, confirmedTotal, estimatedTotal, contingency, minimumTotal, fit, finalCostClaim } = summary;
   if (empty) return null;
   const cls = limit === null ? '' : fit === 'over' ? ' over' : fit === 'within' ? ' ok' : '';
   return (
     <div className={`plan-total${cls}`} role="status">
-      <span>{complete ? 'Total do plano' : 'Total parcial (só valores informados)'}</span>
+      <span>{complete && essentialMissing.length === 0 ? 'Total do plano' : 'Total parcial (só valores informados)'}</span>
       <strong>{brl(knownTotal)}</strong>
       <dl className="trip-totals">
         <div><dt>Confirmado ou informado por você</dt><dd>{brl(confirmedTotal)}</dd></div>
@@ -224,10 +224,13 @@ function PlanTotal({ summary }) {
           {unknown.length > 4 ? '…' : ''}.
         </small>
       )}
+      {essentialMissing.length > 0 && (
+        <small>Custos essenciais sem nenhum valor no plano: {essentialMissing.join(', ')}. Sem eles, o total é parcial.</small>
+      )}
       {limit === null && <small>Defina o orçamento acima para comparar.</small>}
       {limit !== null && fit === 'over' && <small>O custo mínimo passa do limite em {brl(minimumTotal - limit)}, mesmo sem os itens que faltam.</small>}
       {limit !== null && fit === 'within' && <small>Cabe no seu limite com a reserva. Sobram {brl(limit - minimumTotal)}.</small>}
-      {limit !== null && fit === 'within_partial' && <small>Cabe até aqui, mas ainda não dá para garantir: faltam valores.</small>}
+      {limit !== null && fit === 'within_partial' && <small>Resultado parcial: não dá para afirmar que cabe, porque faltam valores.</small>}
     </div>
   );
 }

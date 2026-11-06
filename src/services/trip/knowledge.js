@@ -44,7 +44,7 @@ export function loadKnowledgeBase(raw) {
     if (!meta.id || !meta.name || !meta.url) errors.push(`fonte ${meta.id ?? '(sem id)'}: id, nome e URL são obrigatórios`);
     else if (!unique('source', meta.id)) errors.push(`fonte ${meta.id}: id duplicado`);
     else {
-      kb.sources.push(meta);
+      kb.sources.push({ ...meta, fixture: s.fixture === true }); // fixture = dado fictício de desenvolvimento
       if (meta.issues.length) warnings.push(`fonte ${meta.id}: ${meta.issues.join(' ')}`);
     }
   }
@@ -151,6 +151,57 @@ export function loadKnowledgeBase(raw) {
 }
 
 export const isEmptyKnowledgeBase = (kb) => kb.destinations.length === 0;
+
+/** A base tem alguma fonte marcada como fixture (dado fictício de desenvolvimento/testes)? */
+export const hasFixtureSources = (kb) => kb.sources.some((s) => s.fixture === true);
+
+/**
+ * Trava de produção: fixtures nunca chegam ao usuário final. Em produção, uma base com fonte fixture é descartada
+ * por inteiro (vira base vazia) e o motivo é devolvido para registro.
+ */
+export function guardProductionKnowledgeBase(kb, { production }) {
+  if (production && hasFixtureSources(kb)) {
+    return { kb: emptyKnowledgeBase(), blocked: true, reason: 'Base com dados fictícios (fixture) bloqueada em produção.' };
+  }
+  return { kb, blocked: false, reason: null };
+}
+
+/**
+ * Cobertura da base: o que existe e o que falta, por destino. Serve para saber, antes de publicar, quais destinos têm
+ * preço verificável (confirmado/publicado) de transporte, hospedagem e custos locais. Não inventa nada: só conta.
+ */
+export function knowledgeCoverage(kb) {
+  const known = (p) => p.status !== 'unknown';
+  const verified = (p) => p.status === 'confirmed' || p.status === 'published';
+  const destinations = kb.destinations.map((d) => {
+    const transports = kb.transportOptions.filter((t) => t.destinationId === d.id);
+    const lodgings = kb.lodgings.filter((l) => l.destinationId === d.id);
+    return {
+      id: d.id, name: d.name,
+      transportOrigins: [...new Set(transports.filter((t) => known(t.price)).map((t) => t.origin))],
+      lodgingWithPrice: lodgings.filter((l) => known(l.price)).length,
+      lodgingTotal: lodgings.length,
+      dailyFood: known(d.dailyFood), localTransport: known(d.localTransportDaily),
+      verifiedPrices: transports.filter((t) => verified(t.price)).length + lodgings.filter((l) => verified(l.price)).length
+        + (verified(d.dailyFood) ? 1 : 0) + (verified(d.localTransportDaily) ? 1 : 0),
+    };
+  });
+  const missing = (d) => [
+    !d.transportOrigins.length && 'transporte',
+    !d.lodgingWithPrice && 'hospedagem',
+    !d.dailyFood && 'alimentação',
+    !d.localTransport && 'deslocamento local',
+  ].filter(Boolean);
+  return {
+    destinations: destinations.map((d) => ({ ...d, missing: missing(d) })),
+    summary: {
+      destinations: destinations.length,
+      fullyCovered: destinations.filter((d) => missing(d).length === 0).length,
+      withVerifiedPrices: destinations.filter((d) => d.verifiedPrices > 0).length,
+      sources: kb.sources.length, fixtureSources: kb.sources.filter((s) => s.fixture).length,
+    },
+  };
+}
 
 /** Fonte (com licença) citada por um preço, ou null. */
 export function sourceOf(kb, price) {

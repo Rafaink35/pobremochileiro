@@ -121,17 +121,34 @@ export function planSummary(draft, now = new Date()) {
     now,
   );
   const unknown = b.pending.map((p) => p.label);
+
+  // Custos essenciais sem nenhum valor no plano (transporte, comida e, havendo noites, hospedagem): o resultado é parcial.
+  const hasValue = (key) => lines.some((l) => l.category === key && l.price.status !== 'unknown');
+  const empty = (draft.items ?? []).length + (draft.stays ?? []).length === 0;
+  const days = Number(draft.days);
+  const stays = draft.stays ?? [];
+  const lodgingCovered = hasValue('lodging') || stays.some((s) => s.cost.status === COST_STATUS.FREE || s.cost.status === COST_STATUS.EXCHANGE);
+  const transportCovered = hasValue('transport') || stays.some((s) => s.transport.status === TRANSPORT_STATUS.CONFIRMED);
+  const essentialMissing = empty ? [] : [
+    !transportCovered && 'Transporte',
+    !(Number.isFinite(days) && days <= 1) && !lodgingCovered && 'Hospedagem',
+    !hasValue('food') && 'Alimentação',
+  ].filter(Boolean);
+  let fit = b.fit;
+  if (essentialMissing.length && fit === 'within') fit = 'within_partial';
+  const finalCostClaim = essentialMissing.length ? 'incomplete' : b.finalCostClaim;
   return {
     knownTotal: Math.round((b.knownTotal + b.estimatedTotal) * 100) / 100,
     confirmedTotal: b.knownTotal,
     estimatedTotal: b.estimatedTotal,
     contingency: b.contingency,
     minimumTotal: b.minimumTotal,
-    fit: b.fit,
-    finalCostClaim: b.finalCostClaim,
+    fit,
+    finalCostClaim,
+    essentialMissing,
     unknown,
-    empty: (draft.items ?? []).length + (draft.stays ?? []).length === 0,
-    complete: unknown.length === 0,
+    empty,
+    complete: unknown.length === 0, // só valores informados; custos essenciais ausentes ficam em `essentialMissing`
     limit: hasLimit ? limit : null,
   };
 }

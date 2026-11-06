@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Tent } from 'lucide-react';
 import { fetchOsmCampings } from '../services/lodging/osmCamping.js';
+import { fetchStays } from '../api/stays.js';
+import { flattenGroups } from '../services/stays/legacy.js';
+import { StayResults } from '../components/StayResults.jsx';
 import { dedupeLodgings, filterLodgings } from '../services/lodging/lodgingModel.js';
 import { filterOpportunities } from '../services/workExchange/opportunity.js';
 import { fetchApprovedOpportunities } from '../api/workExchange.js';
@@ -11,11 +14,16 @@ import { activePlanName } from '../services/planner/plans.js';
 import { partners } from '../data/partners.js';
 import { searchGroups, searchUrl } from '../data/searchSites.js';
 
-const TABS = [['hotel', 'Hotéis'], ['hostel', 'Hostels'], ['camping', 'Campings'], ['work', 'Trabalho em troca'], ['aupair', 'Au pair']];
-const OSM_TABS = ['hotel', 'hostel', 'camping'];
-const SEARCH_LABEL = { hotel: 'Procurar hotéis', hostel: 'Procurar hostels', camping: 'Procurar campings' };
-const NOUN = { hotel: 'hotéis e pousadas', hostel: 'hostels', camping: 'campings' };
+const TABS = [['camping', 'Campings'], ['hostel', 'Hostels'], ['pousada', 'Pousadas'], ['ecovila', 'Ecovilas'], ['colaborativa', 'Hospedagem colaborativa'], ['hotel', 'Hotéis'], ['work', 'Trabalho em troca'], ['aupair', 'Au pair']];
+// Abas de busca de local (pesquisa em /api/stays). Hotéis, hostels e campings mantêm a busca direta antiga como reserva
+// quando o servidor de pesquisa não existe (ex.: desenvolvimento sem server.mjs).
+const STAY_TABS = ['camping', 'hostel', 'pousada', 'ecovila', 'colaborativa', 'hotel'];
+const OSM_TABS = STAY_TABS;
+const LEGACY_TABS = ['hotel', 'hostel', 'camping'];
+const SEARCH_LABEL = { hotel: 'Procurar hotéis', hostel: 'Procurar hostels', camping: 'Procurar campings', pousada: 'Procurar pousadas', ecovila: 'Procurar ecovilas', colaborativa: 'Procurar hospedagem colaborativa' };
+const NOUN = { hotel: 'hotéis', hostel: 'hostels', camping: 'campings', pousada: 'pousadas', ecovila: 'ecovilas', colaborativa: 'hospedagem colaborativa' };
 const KIND_NAME = { camp_site: 'camping', caravan_site: 'área de motorhome', hotel: 'hotel', motel: 'motel', guest_house: 'pousada', hostel: 'hostel' };
+const LEGACY_NOTE = { status: 'idle', records: [], message: '', collectedAt: null, meta: null, candidates: [] };
 
 const AMENITY_FILTERS = [
   ['toilets', 'Banheiro'],
@@ -30,9 +38,9 @@ const COMFORT_FILTERS = [
 ];
 
 export function Stays({ draft, setDraft, notify, onNavigate }) {
-  const [tab, setTab] = useState('hotel');
+  const [tab, setTab] = useState('camping');
   const [place, setPlace] = useState('');
-  const [search, setSearch] = useState({ status: 'idle', records: [], message: '', collectedAt: null });
+  const [search, setSearch] = useState(LEGACY_NOTE);
   const [filters, setFilters] = useState({ kind: 'all', state: '', city: '', amenities: {}, tents: false, maxPrice: '', hasWebsite: false });
   const [work, setWork] = useState({ status: 'idle', rows: [] });
   const [selected, setSelected] = useState(null);
@@ -40,7 +48,7 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
   const changeTab = (id) => {
     setTab(id);
     setSelected(null);
-    setSearch({ status: 'idle', records: [], message: '', collectedAt: null });
+    setSearch(LEGACY_NOTE);
     setFilters((f) => ({ ...f, kind: 'all', amenities: {}, tents: false }));
   };
 
@@ -50,13 +58,27 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
     fetchApprovedOpportunities().then((r) => setWork(r));
   }, [tab, work.status]);
 
-  const runSearch = async (e) => {
-    e.preventDefault();
-    if (!OSM_TABS.includes(tab)) return;
+  // Pesquisa pelo servidor (qualquer país). `choice` = candidato escolhido quando o destino é ambíguo.
+  const runSearch = async (e, choice) => {
+    e?.preventDefault?.();
+    if (!STAY_TABS.includes(tab)) return;
     setSelected(null);
-    setSearch({ status: 'loading', records: [], message: '', collectedAt: null });
-    const r = await fetchOsmCampings(place, { category: tab });
-    setSearch({ ...r, records: dedupeLodgings(r.records) });
+    setSearch({ ...LEGACY_NOTE, status: 'loading' });
+    const api = await fetchStays(choice
+      ? { lat: choice.lat, lon: choice.lon, name: choice.name, nameEn: choice.nameEn, label: choice.label, cc: choice.countryCode, rc: choice.regionCode, r: choice.radiusM, category: tab }
+      : { q: place, category: tab });
+    if (api.status === 'aborted') return;
+    if (api.offline && LEGACY_TABS.includes(tab)) {
+      const r = await fetchOsmCampings(place, { category: tab });
+      setSearch({ ...LEGACY_NOTE, ...r, records: dedupeLodgings(r.records) });
+      return;
+    }
+    if (api.status === 'ambiguous') return setSearch({ ...LEGACY_NOTE, status: 'ambiguous', message: api.message, candidates: api.candidates });
+    if ((api.status === 'ok' || api.status === 'partial') && api.groups) {
+      const records = flattenGroups(api.groups);
+      return setSearch({ ...LEGACY_NOTE, status: records.length || api.categoryNotes?.length ? 'ok' : 'empty', records, collectedAt: api.collectedAt, meta: api, message: records.length ? '' : api.message });
+    }
+    setSearch({ ...LEGACY_NOTE, status: api.status === 'unavailable' ? 'unavailable' : 'empty', message: api.message ?? 'Não foi possível pesquisar agora.' });
   };
 
   const addToPlan = (kind, item) => {
@@ -114,8 +136,8 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
 
       <form onSubmit={runSearch} className="flights-form">
         <label>
-          Cidade, região ou estado
-          <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Ex.: Florianópolis" required={OSM_TABS.includes(tab) || tab === 'aupair'} />
+          Cidade ou destino (qualquer país)
+          <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Ex.: Florianópolis, Lisboa, 東京" required={OSM_TABS.includes(tab) || tab === 'aupair'} />
         </label>
         {OSM_TABS.includes(tab) && (
           <button className="btn-primary" type="submit" disabled={search.status === 'loading'}>
@@ -177,9 +199,36 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
           </fieldset>
 
           {search.status === 'idle' && <p className="flights-note">Digite um lugar e toque em "{SEARCH_LABEL[tab]}".</p>}
-          {search.status === 'loading' && <p role="status">Consultando o OpenStreetMap…</p>}
+          {search.status === 'loading' && <p role="status">Consultando as fontes…</p>}
           {(search.status === 'unavailable' || search.status === 'empty') && <p role="status">{search.message}</p>}
-          {search.status === 'ok' && (
+          {search.status === 'ambiguous' && (
+            <div role="group" aria-label="Escolha o destino">
+              <p role="status">{search.message}</p>
+              <ul className="flex-list">
+                {search.candidates.map((c) => (
+                  <li key={c.id}>
+                    <span><b>{c.name}</b> · {[c.region, c.country].filter(Boolean).join(', ') || c.label}</span>
+                    <button className="btn-outline" onClick={() => runSearch(null, c)}>Pesquisar aqui</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {search.status === 'ok' && search.meta && (
+            <>
+              <StayResults
+                meta={search.meta}
+                records={camp.records}
+                kindName={KIND_NAME}
+                onOpen={(c) => setSelected({ kind: tab, item: c })}
+                onAdd={(c) => addToPlan(tab, c)}
+                inPlan={(c) => inPlan(tab, c)}
+              />
+              {['hotel', 'hostel', 'pousada'].includes(tab) && <PriceLinks tab={tab} place={place} />}
+              {['ecovila', 'colaborativa'].includes(tab) && <CommunityLinks tab={tab} place={place} onNavigate={onNavigate} onWork={() => changeTab('work')} />}
+            </>
+          )}
+          {search.status === 'ok' && !search.meta && (
             <>
               <p role="status">
                 {camp.records.length} de {search.records.length} locais
@@ -251,7 +300,27 @@ export function Stays({ draft, setDraft, notify, onNavigate }) {
   );
 }
 
-const PARTNER_ID = { hotel: null, hostel: 'hostel' };
+const PARTNER_ID = { hotel: null, hostel: 'hostel', pousada: null };
+
+/** Ecovilas e hospedagem colaborativa não têm dados abertos confiáveis: só pesquisa nos diretórios, sem copiar anúncios. */
+function CommunityLinks({ tab, place, onWork }) {
+  const groups = tab === 'ecovila' ? ['ecovila'] : ['colaborativa', 'volunteer'];
+  const query = `${tab === 'ecovila' ? 'ecovillage' : 'volunteer'} ${place}`.trim();
+  return (
+    <div className="flights-note" role="note">
+      <p>Não listamos locais sem fonte aberta confiável. Pesquise diretamente nos diretórios (os links só abrem uma busca no site):</p>
+      <ul className="flex-list">
+        {groups.flatMap((id) => searchGroups.find((g) => g.id === id)?.sites ?? []).map((site) => (
+          <li key={site.domain}>
+            <span><b>{site.name}</b> · pesquisa no site</span>
+            <a className="btn-outline" href={searchUrl(site.domain, query)} target="_blank" rel="noopener noreferrer">Pesquisar</a>
+          </li>
+        ))}
+      </ul>
+      {tab === 'colaborativa' && <button type="button" className="btn-outline" onClick={onWork}>Ver oportunidades aprovadas de trabalho em troca</button>}
+    </div>
+  );
+}
 
 /** O OpenStreetMap não traz preço de hotel/hostel: mostramos onde conferir, sem inventar valor. */
 function PriceLinks({ tab, place }) {

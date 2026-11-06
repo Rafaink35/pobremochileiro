@@ -112,7 +112,7 @@ export function TripPlan({ draft, setDraft }) {
               <li key={st.id} className="plan-stay">
                 <b>{st.name}</b>
                 <span>
-                  {{ work_exchange: 'Trabalho em troca', hotel: 'Hotel', hostel: 'Hostel' }[st.kind] ?? 'Camping'}
+                  {{ work_exchange: 'Trabalho em troca', hotel: 'Hotel', hostel: 'Hostel', pousada: 'Pousada', ecovila: 'Ecovila', colaborativa: 'Hospedagem colaborativa' }[st.kind] ?? 'Camping'}
                   {[st.city, st.state].filter(Boolean).length ? ` · ${[st.city, st.state].filter(Boolean).join(' / ')}` : ''}
                 </span>
                 <StayBooking st={st} />

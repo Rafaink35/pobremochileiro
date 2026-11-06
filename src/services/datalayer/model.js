@@ -2,7 +2,7 @@
 // carrega fonte, id na fonte, licença e datas; dados abertos e comerciais são identificados à parte (origin_kind).
 import { validateCoordinates } from '../geo.js';
 
-export const ESTABLISHMENT_TYPES = Object.freeze(['hostel', 'hotel', 'pousada', 'guest_house', 'camping', 'caravan_site']);
+export const ESTABLISHMENT_TYPES = Object.freeze(['hostel', 'hotel', 'pousada', 'guest_house', 'camping', 'caravan_site', 'ecovillage', 'collaborative']);
 export const ORIGIN_KIND = Object.freeze({ OPEN: 'open', COMMERCIAL: 'commercial' });
 export const ESTABLISHMENT_STATUS = Object.freeze({ UNVERIFIED: 'unverified', ACTIVE: 'active', CLOSED: 'closed' });
 
@@ -20,7 +20,7 @@ const UF = /^[A-Z]{2}$/;
 
 /** Hash estável do conteúdo que importa (para saber se um registro mudou). Não inclui datas de sincronização. */
 export function contentHash(e) {
-  const keys = ['name', 'type', 'description', 'latitude', 'longitude', 'address', 'city', 'state', 'phone', 'website', 'facilities', 'status', 'extra'];
+  const keys = ['name', 'type', 'description', 'latitude', 'longitude', 'address', 'city', 'state', 'region', 'country', 'phone', 'website', 'facilities', 'status', 'extra'];
   const stable = JSON.stringify(keys.map((k) => e[k] ?? null), (_, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v));
   let h = 5381;
   for (let i = 0; i < stable.length; i += 1) h = ((h << 5) + h + stable.charCodeAt(i)) | 0;
@@ -67,8 +67,9 @@ export function createEstablishment(input = {}, { now = () => new Date() } = {})
     longitude: lon,
     address: text(input.address, 300),
     city: text(input.city, 120),
-    state,
-    country: text(input.country, 2)?.toUpperCase() ?? 'BR',
+    state, // UF brasileira (2 letras); fora do Brasil use `region`
+    region: text(input.region, 120),
+    country: text(input.country, 2)?.toUpperCase() ?? (state ? 'BR' : null), // UF implica Brasil; sem país informado fica desconhecido
     phone: text(input.phone, 60),
     website: url(input.website),
     facilities: input.facilities && typeof input.facilities === 'object' ? input.facilities : null,

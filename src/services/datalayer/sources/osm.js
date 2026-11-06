@@ -3,6 +3,7 @@
 // testada de lodging/osmCamping.js. Ausência de dado no OSM NÃO significa que o estabelecimento não existe.
 import { normalizeOsmElement, OSM_SOURCE, escapeOverpass } from '../../lodging/osmCamping.js';
 import { createEstablishment } from '../model.js';
+import { validateCoordinates } from '../../geo.js';
 import { createCache, createRateLimiter, HttpError, parseRetryAfter, withBackoff } from '../cache.js';
 
 export const DEFAULT_OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
@@ -33,6 +34,14 @@ export function expandScope(scope) {
     if (!ALL_UFS.includes(scope.uf) || !scope.name || scope.name.length > 80) throw new Error('município inválido');
     return [scope];
   }
+  if (scope.kind === 'around') {
+    // Destino em qualquer país: centro + raio (metros), com filtro de categorias opcional (subconjunto de OSM_TOURISM).
+    const ok = validateCoordinates(scope.lat, scope.lon) && Number.isFinite(scope.radiusM) && scope.radiusM >= 500 && scope.radiusM <= 30000;
+    const tourism = scope.tourism ?? OSM_TOURISM;
+    if (!ok) throw new Error('área circular inválida (centro e raio entre 500 e 30000 m)');
+    if (!Array.isArray(tourism) || !tourism.length || !tourism.every((t) => OSM_TOURISM.includes(t))) throw new Error('categorias OSM inválidas');
+    return [scope];
+  }
   if (scope.kind === 'bbox') {
     const b = scope.bbox;
     const ok = Array.isArray(b) && b.length === 4 && b.every(Number.isFinite) && b[0] < b[2] && b[1] < b[3] && b[0] >= -90 && b[2] <= 90 && b[1] >= -180 && b[3] <= 180;
@@ -42,12 +51,13 @@ export function expandScope(scope) {
   throw new Error(`escopo desconhecido: ${scope.kind}`);
 }
 
-export const scopeLabel = (s) => (s.kind === 'uf' ? `uf:${s.uf}` : s.kind === 'municipio' ? `municipio:${s.uf}:${s.name}` : `bbox:${s.bbox.join(',')}`);
+export const scopeLabel = (s) => (s.kind === 'around' ? `around:${s.lat},${s.lon},${s.radiusM}` : s.kind === 'uf' ? `uf:${s.uf}` : s.kind === 'municipio' ? `municipio:${s.uf}:${s.name}` : `bbox:${s.bbox.join(',')}`);
 
 /** Consulta Overpass para um escopo simples (uf, municipio ou bbox). */
 export function buildQuery(scope, { timeoutSec = 180 } = {}) {
-  const filter = `["tourism"~"^(${OSM_TOURISM.join('|')})$"]`;
-  const head = `[out:json][timeout:${timeoutSec}];`;
+  const filter = `["tourism"~"^(${(scope.kind === 'around' ? scope.tourism ?? OSM_TOURISM : OSM_TOURISM).join('|')})$"]`;
+  const head = `[out:json][timeout:${scope.kind === 'around' ? Math.min(timeoutSec, 60) : timeoutSec}];`;
+  if (scope.kind === 'around') return `${head}\nnwr${filter}(around:${Math.round(scope.radiusM)},${scope.lat},${scope.lon});\nout center meta;`;
   if (scope.kind === 'bbox') {
     const [s, w, n, e] = scope.bbox;
     return `${head}\nnwr${filter}(${s},${w},${n},${e});\nout center meta;`;
@@ -84,7 +94,10 @@ export function normalizeElements(elements, { scope, collectedAt, now }) {
         longitude: base.lon,
         address: addressOf(tags),
         city: base.city,
-        state: scope.kind === 'bbox' ? base.state?.toUpperCase().slice(0, 2) ?? null : scope.uf, // dentro da área da UF consultada
+        // UF só quando a consulta foi por UF (dentro da área consultada); fora do Brasil o estado vai em `region` (texto livre).
+        state: scope.kind === 'uf' || scope.kind === 'municipio' ? scope.uf : /^[A-Za-z]{2}$/.test(base.state ?? '') && String(tags['addr:country'] ?? '').toUpperCase() === 'BR' ? base.state.toUpperCase() : null,
+        region: scope.kind === 'uf' || scope.kind === 'municipio' ? null : base.state,
+        country: /^[A-Za-z]{2}$/.test(tags['addr:country'] ?? '') ? tags['addr:country'] : scope.kind === 'uf' || scope.kind === 'municipio' ? 'BR' : null,
         phone: base.phone,
         website: base.website,
         facilities: { ...base.amenities, tents: base.tents, caravans: base.caravans, fee: base.fee, charge: base.chargeText, opening_hours: base.openingHours },

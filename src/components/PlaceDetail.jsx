@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { MapPin, Plus } from 'lucide-react';
 import { TransportSearch } from './TransportSearch.jsx';
 import { externalMapLinks } from '../services/geo.js';
+import { describePricing } from '../services/stays/legacy.js';
 
 const yesNo = (v) => (v === true ? 'sim' : v === false ? 'não' : 'não informado');
 const AMENITY_LABEL = {
@@ -26,8 +27,10 @@ function Row({ label, children }) {
 const KIND_LABEL = { camp_site: 'Camping', caravan_site: 'Área de motorhome/caravana', hotel: 'Hotel', motel: 'Motel', guest_house: 'Pousada ou casa de hóspedes', hostel: 'Hostel' };
 
 function CampingInfo({ c }) {
-  const feeText =
-    c.fee === 'free'
+  const classified = c.pricing && c.pricing.class !== 'unavailable' ? describePricing(c.pricing) : null;
+  const feeText = classified
+    ? classified
+    : c.fee === 'free'
       ? 'gratuito, segundo a fonte'
       : c.fee === 'paid'
         ? c.chargeText
@@ -45,6 +48,7 @@ function CampingInfo({ c }) {
         </>
       )}
       <Row label="Preço">{feeText}</Row>
+      {c.registries?.includes('cadastur') && <Row label="Registro oficial">Cadastrado no Cadastur (Ministério do Turismo)</Row>}
       <ul className="amenity-list">
         {Object.entries(AMENITY_LABEL).map(([k, label]) => (
           <li key={k}>
@@ -64,15 +68,16 @@ function CampingInfo({ c }) {
       <Row label="Telefone">{c.phone}</Row>
       <Row label="E-mail">{c.email}</Row>
       <p className="flights-note">
-        O OpenStreetMap não garante que este local está aberto, aceita hóspedes ou permite acampar hoje. Confirme com o
-        local antes de ir.
+        As fontes não garantem que este local está aberto, aceita hóspedes ou permite acampar hoje, e a disponibilidade
+        nunca é presumida. Confirme com o local antes de ir.
       </p>
+      {c.possibleDuplicates?.length > 0 && <p className="flights-note">Pode ser o mesmo local de outro resultado da lista (não foram unificados).</p>}
       {c.conflicts?.length > 0 && <p className="flights-note">Fontes divergem em: {c.conflicts.join(', ')}.</p>}
       {c.sources.map((s) => (
-        <p key={s.originalId} className="flights-note">
-          Fonte: {s.attribution} · Licença: <a href={s.licenseUrl} target="_blank" rel="noopener noreferrer">{s.license}</a> ·{' '}
-          <a href={s.sourceUrl} target="_blank" rel="noopener noreferrer">{s.originalId}</a> · coletado em {dateOf(s.collectedAt)}
-          {s.lastEditedAt ? ` · última edição no OSM: ${dateOf(s.lastEditedAt)}` : ''}
+        <p key={`${s.provider}:${s.originalId}`} className="flights-note">
+          Fonte: {s.attribution} · Licença: {s.licenseUrl ? <a href={s.licenseUrl} target="_blank" rel="noopener noreferrer">{s.license}</a> : s.license} ·{' '}
+          {s.sourceUrl ? <a href={s.sourceUrl} target="_blank" rel="noopener noreferrer">{s.originalId}</a> : s.originalId} · coletado em {dateOf(s.collectedAt)}
+          {s.lastEditedAt ? ` · última edição na fonte: ${dateOf(s.lastEditedAt)}` : ''}
         </p>
       ))}
     </>

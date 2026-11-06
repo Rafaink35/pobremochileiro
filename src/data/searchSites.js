@@ -25,6 +25,20 @@ export const searchGroups = [
     note: 'Confira regras do local, taxas e se o camping é autorizado.',
   },
   {
+    id: 'ecovila',
+    label: 'Ecovilas',
+    fields: ['lugar'],
+    sites: [{ name: 'Global Ecovillage Network', domain: 'ecovillage.org' }],
+    note: 'Diretório de comunidades intencionais. Confirme com a comunidade se recebe visitantes e como funciona.',
+  },
+  {
+    id: 'colaborativa',
+    label: 'Hospedagem colaborativa',
+    fields: ['lugar'],
+    sites: [{ name: 'Couchsurfing', domain: 'couchsurfing.com' }],
+    note: 'Hospedagem em casa de anfitriões. Leia avaliações e combine tudo por escrito.',
+  },
+  {
     id: 'volunteer',
     label: 'Voluntariado',
     fields: ['lugar'],

@@ -9,14 +9,15 @@
 create table if not exists public.establishments (
   id text primary key,                         -- "<fonte>:<id na fonte>"
   name text not null,
-  type text not null check (type in ('hostel','hotel','pousada','guest_house','camping','caravan_site')),
+  type text not null check (type in ('hostel','hotel','pousada','guest_house','camping','caravan_site','ecovillage','collaborative')),
   description text,
   latitude double precision check (latitude between -90 and 90),
   longitude double precision check (longitude between -180 and 180),
   address text,
   city text,
   state text check (state is null or state ~ '^[A-Z]{2}$'),
-  country text not null default 'BR',
+  region text,                                 -- estado/província fora do Brasil (texto livre)
+  country text check (country is null or country ~ '^[A-Z]{2}$'),  -- ISO 3166-1 alfa-2; NULL = desconhecido
   phone text,
   website text,
   facilities jsonb,

@@ -4,7 +4,7 @@
 import { normalizeOsmElement, OSM_SOURCE, escapeOverpass } from '../../lodging/osmCamping.js';
 import { createEstablishment } from '../model.js';
 import { validateCoordinates } from '../../geo.js';
-import { createCache, createRateLimiter, HttpError, parseRetryAfter, withBackoff } from '../cache.js';
+import { createCache, createRateLimiter, HttpError, parseRetryAfter, requestSignal, withBackoff } from '../cache.js';
 
 export const DEFAULT_OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 export const OSM_TOURISM = ['hotel', 'motel', 'guest_house', 'hostel', 'camp_site', 'caravan_site'];
@@ -132,24 +132,28 @@ export function createOsmAdapter({
   maxMs = 60_000,
   requestTimeoutMs = null, // tempo máximo de CADA requisição (null = sem limite; o job de sincronização usa timeout de 180 s do próprio Overpass)
   deadlineMs = null, // prazo TOTAL da operação, esperas incluídas (null = sem limite)
+  minAttemptMs = 0, // tempo mínimo útil de uma nova tentativa: sem ele no prazo restante, não repete
 } = {}) {
-  async function fetchRaw(scope) {
+  async function fetchRaw(scope, { signal } = {}) {
     const query = buildQuery(scope);
     const key = `${endpoint}|${query}`;
     const hit = cache.get(key);
     if (hit) return { elements: hit, fromCache: true };
     const elements = await limiter.run(() => {
+      signal?.throwIfAborted(); // chamada que ficou na fila do limitador: não sai depois do fim da operação
       const startedAt = now().getTime();
       const deadlineAt = deadlineMs ? startedAt + deadlineMs : Infinity;
       return withBackoff(
         async () => {
           const remaining = deadlineAt - now().getTime();
-          const signalMs = requestTimeoutMs ? Math.max(1000, Math.min(requestTimeoutMs, remaining)) : null;
+          if (remaining <= 0) throw Object.assign(new Error('prazo total esgotado'), { name: 'TimeoutError' });
+          const signalMs = requestTimeoutMs ? Math.min(requestTimeoutMs, remaining) : null; // nunca passa do prazo restante
+          const sig = requestSignal(signalMs, signal);
           const res = await fetchImpl(endpoint, {
             method: 'POST',
             headers: { 'content-type': 'application/x-www-form-urlencoded', ...(contact && { 'user-agent': `PobreMochileiro/0.2 (${contact})` }) },
             body: `data=${encodeURIComponent(query)}`,
-            ...(signalMs && { signal: AbortSignal.timeout(signalMs) }),
+            ...(sig && { signal: sig }),
           });
           if (!res.ok) throw new HttpError(res.status, parseRetryAfter(res.headers?.get?.('retry-after'), () => now().getTime()));
           const json = await res.json();
@@ -157,7 +161,7 @@ export function createOsmAdapter({
           if (json.elements.length === 0 && /runtime error|timed out|out of memory/i.test(json.remark ?? '')) throw new HttpError(504);
           return json.elements;
         },
-        { retries, baseMs, maxMs, sleep, now: () => now().getTime(), deadlineAt },
+        { retries, baseMs, maxMs, sleep, now: () => now().getTime(), deadlineAt, minAttemptMs, signal },
       );
     });
     cache.set(key, elements);

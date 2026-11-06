@@ -60,22 +60,34 @@ export function parseRetryAfter(value, now = () => Date.now()) {
 /**
  * Repete em erro temporário (429, 5xx, rede) com recuo exponencial; erro definitivo (4xx) sobe na hora.
  * - `Retry-After` (retryAfterMs) é RESPEITADO: nunca se espera menos do que o servidor pediu.
- * - `deadlineAt` (ms, relógio de `now`) é o prazo total: se a espera não cabe nele, não repete e o erro sobe com o status original.
+ * - `deadlineAt` (ms, relógio de `now`) é o prazo total: só repete se a espera MAIS um tempo útil de tentativa (`minAttemptMs`)
+ *   cabem no prazo; senão o erro original sobe (sem esperar).
+ * - `signal`: quando a operação é encerrada (abort), não repete e não consulta de novo.
  */
-export async function withBackoff(fn, { retries = 3, baseMs = 1000, maxMs = 60_000, sleep = defaultSleep, random = Math.random, now = () => Date.now(), deadlineAt = Infinity } = {}) {
+export async function withBackoff(fn, { retries = 3, baseMs = 1000, maxMs = 60_000, sleep = defaultSleep, random = Math.random, now = () => Date.now(), deadlineAt = Infinity, minAttemptMs = 0, signal = null } = {}) {
   let attempt = 0;
   for (;;) {
+    signal?.throwIfAborted();
     try {
       return await fn(attempt);
     } catch (err) {
+      if (signal?.aborted) throw err; // operação encerrada: não repete
       const status = err?.status;
       const temporary = status === undefined || status === 429 || status >= 500;
       if (!temporary || attempt >= retries) throw err;
       const exp = Math.min(maxMs, baseMs * 2 ** attempt);
       const wait = err.retryAfterMs != null ? err.retryAfterMs : exp / 2 + random() * (exp / 2);
-      if (now() + wait > deadlineAt) throw err; // não cabe no prazo total
+      if (now() + wait + minAttemptMs > deadlineAt) throw err; // não cabe no prazo total
       await sleep(wait);
+      signal?.throwIfAborted(); // encerrada durante a espera: não consulta de novo
       attempt += 1;
     }
   }
+}
+
+/** Sinal de cancelamento combinado: tempo limite da requisição (se houver) e encerramento da operação (se houver). */
+export function requestSignal(timeoutMs, operationSignal) {
+  const signals = [timeoutMs ? AbortSignal.timeout(timeoutMs) : null, operationSignal].filter(Boolean);
+  if (!signals.length) return undefined;
+  return signals.length > 1 ? AbortSignal.any(signals) : signals[0];
 }

@@ -49,10 +49,10 @@ export function createOsmStaySource({ adapter = createOsmAdapter({ cache: { get:
       const wanted = categories.flatMap((c) => OSM_TOURISM_BY_CATEGORY[c] ?? []);
       return wanted.length ? { ok: true } : { ok: false, reason: 'o OpenStreetMap não tem marcação confiável para as categorias pedidas' };
     },
-    async search({ destination, categories }) {
+    async search({ destination, categories, signal }) {
       const tourism = [...new Set(categories.flatMap((c) => OSM_TOURISM_BY_CATEGORY[c] ?? []))];
       const [scope] = adapter.expandScope({ kind: 'around', lat: destination.lat, lon: destination.lon, radiusM: destination.radiusM, tourism });
-      const { elements } = await adapter.fetch(scope);
+      const { elements } = await adapter.fetch(scope, { signal });
       const collectedAt = now().toISOString();
       const records = [];
       let rejected = 0;

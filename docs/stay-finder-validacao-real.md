@@ -105,3 +105,8 @@ Pendente: a análise local dos JSON (contagens de nome, site, telefone, cidade, 
 ### Regras de preço consolidadas nesta validação
 - Preço do OpenStreetMap só vale com `charge` (valor e moeda) e data de verificação do **próprio preço** (`check_date:charge`). A data de edição do objeto no OSM **não** é a data do preço.
 - `fee` nunca é preço.
+
+### Resultado da suíte de testes (registro; não equivale a 100% aprovado)
+- **Commit `72fc13e` (P1, P4 e P6): `npm test` = 474 de 475 testes passam (1 falha).** A falha é `server/__tests__/server.test.js > não sai da pasta do site (path traversal)`, em uma pasta local `server/` **fora do repositório** (ignorada pelo git), que já falhava antes das mudanças. Não é classificado como 100% aprovado.
+- Os 37 arquivos de `src` passaram por inteiro (467 de 467) nesse commit.
+- Correção do P4 (demonstração com relógio simulado): resultado da suíte registrado na mensagem do commit e no relatório de entrega; o teste de path traversal da pasta local continua falhando, pelo mesmo motivo.

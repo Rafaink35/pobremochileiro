@@ -101,10 +101,14 @@ Ver `docs/stay-finder-validacao-real.md` (06/11/2026): Nominatim e Wikivoyage re
 
 ## Política de tempo, novas tentativas e circuito (Overpass)
 - **Um endpoint**: `OVERPASS_URL` (padrão `overpass-api.de`). Não há consulta de `/api/status` e **não há alternância automática entre espelhos**. Outra instância só entra se o operador a configurar e tiver autorização dela.
-- **Tempo**: cada requisição ao Overpass tem 65 s; o prazo total da operação (incluindo esperas) é 70 s; o limite da fonte na pesquisa é 75 s. As demais fontes têm 25 s. Como as fontes rodam em paralelo, a pesquisa termina dentro do maior limite.
-- **Novas tentativas**: erros 429, 502, 503, 504 e falhas de rede têm **no máximo 1 nova tentativa**, após no mínimo 30 s (entre 30 e 60 s). Se houver `Retry-After`, ele é respeitado (nunca se espera menos); se não couber no prazo total, não espera e devolve o erro na hora. Erros 4xx não são repetidos.
-- **Circuito**: 3 falhas seguidas pausam a fonte por 10 minutos; durante a pausa, a fonte não é chamada.
+- **Tempo**: cada requisição ao Overpass tem no máximo 65 s **e nunca passa do prazo restante**; o prazo total da operação (esperas incluídas) é 70 s; o limite da fonte na pesquisa é 75 s. As demais fontes têm 25 s (Wikivoyage: requisição de 20 s e prazo de 24 s). Localizar o destino (Nominatim) tem prazo próprio de 25 s (requisição de 15 s, prazo de 20 s). As fontes rodam em paralelo, então a pesquisa termina dentro do maior limite.
+- **Novas tentativas**: erros 429, 502, 503, 504 e falhas de rede têm **no máximo 1 nova tentativa**, após no mínimo 30 s (entre 30 e 60 s). Se houver `Retry-After`, ele é respeitado (nunca se espera menos). A nova tentativa **só ocorre se a espera mais 5 s úteis de tentativa couberem no prazo restante**; senão o erro original volta na hora, sem esperar. Erros 4xx não são repetidos.
+- **Encerramento**: ao fim da operação (sucesso, falha ou tempo esgotado), cada fonte e o geocodificador recebem um sinal de cancelamento: não há nova tentativa, e uma chamada que estava na fila do limitador de taxa não sai depois do fim.
+- **Circuito**: 3 falhas seguidas pausam a fonte por 10 minutos; durante a pausa, a fonte não é chamada; depois de 10 minutos, volta a ser tentada.
 - **Mensagem**: "OpenStreetMap (Overpass) ocupado ou indisponível (HTTP 502)", sem esconder o status.
+- **Demonstração**: `src/services/stays/__tests__/p4-relogio-simulado.test.js` (relógio simulado, sem rede) cobre as cinco propriedades acima, em 216 combinações de duração, `Retry-After` e jitter para o prazo total.
+
+> Correção registrada em 06/11/2026: a primeira versão do P4 (commit `72fc13e`) permitia estourar o prazo total em até 1 s (piso de 1 s na requisição), esperar um `Retry-After` que deixava menos de 1 s úteis, e deixava uma nova tentativa, ou uma chamada em fila, sair depois do fim da pesquisa (Wikivoyage), além de não limitar o tempo do geocodificador. Os testes de relógio simulado revelaram isso e o código foi corrigido.
 
 ## Verificação do pacote de produção
 `npm run build:verify` (build + `scripts/check-bundle.mjs`) falha se a pasta `dist` contiver marcadores de fixtures, snapshots de validação ou frases do relatório de validação real. Testes automáticos impedem importar fixtures em código de produção e fixar números reais fora da documentação.

@@ -19,12 +19,12 @@ function clock(start = NOW.getTime()) {
 }
 const adapter = (fetchImpl, c, extra = {}) => createOsmAdapter({
   fetchImpl, limiter: instant, cache: { get: () => undefined, set: () => {} }, now: c.now, sleep: c.sleep,
-  retries: OVERPASS_POLICY.retries, baseMs: OVERPASS_POLICY.baseMs, maxMs: OVERPASS_POLICY.baseMs, requestTimeoutMs: OVERPASS_POLICY.requestTimeoutMs, deadlineMs: OVERPASS_POLICY.deadlineMs, ...extra,
+  retries: OVERPASS_POLICY.retries, baseMs: OVERPASS_POLICY.baseMs, maxMs: OVERPASS_POLICY.baseMs, requestTimeoutMs: OVERPASS_POLICY.requestTimeoutMs, deadlineMs: OVERPASS_POLICY.deadlineMs, minAttemptMs: OVERPASS_POLICY.minAttemptMs, ...extra,
 });
 
 describe('política do Overpass (P4)', () => {
   it('constantes aprovadas: 1 nova tentativa, requisição de 65 s, prazo total de 70 s, fonte com 75 s', () => {
-    expect(OVERPASS_POLICY).toEqual({ retries: 1, baseMs: 60_000, requestTimeoutMs: 65_000, deadlineMs: 70_000, sourceTimeoutMs: 75_000 });
+    expect(OVERPASS_POLICY).toEqual({ retries: 1, baseMs: 60_000, requestTimeoutMs: 65_000, deadlineMs: 70_000, sourceTimeoutMs: 75_000, minAttemptMs: 5_000 });
   });
 
   it('502 e depois sucesso: no máximo 2 chamadas, com espera mínima de 30 s', async () => {

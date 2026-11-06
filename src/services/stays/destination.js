@@ -3,7 +3,7 @@
 // Política do Nominatim (confirmar a vigente): uso moderado, identificação por User-Agent, cache. Aqui: no máximo 1 consulta
 // por segundo, cache de 24 h por texto e uso somente no servidor.
 import { haversineMeters, parseLatLon, validateCoordinates } from '../geo.js';
-import { createCache, createRateLimiter, HttpError, parseRetryAfter, withBackoff } from '../datalayer/cache.js';
+import { createCache, createRateLimiter, HttpError, parseRetryAfter, requestSignal, withBackoff } from '../datalayer/cache.js';
 import { normText } from './unicode.js';
 
 export const DEFAULT_GEOCODER_URL = 'https://nominatim.openstreetmap.org/search';
@@ -119,27 +119,33 @@ export function createDestinationResolver({
   limiter = createRateLimiter({ minIntervalMs: 1100 }),
   sleep,
   retries = 2,
+  requestTimeoutMs = 15_000, deadlineMs = 20_000, minAttemptMs = 3_000, // dentro dos 25 s da localização do destino
 } = {}) {
-  async function geocode(q) {
+  async function geocode(q, signal) {
     const key = `${endpoint}|${lang}|${normText(q)}`;
     const hit = cache.get(key);
     if (hit) return { results: hit, fromCache: true };
     const url = `${endpoint}?${new URLSearchParams({ q, format: 'jsonv2', limit: '5', addressdetails: '1', namedetails: '1', 'accept-language': lang })}`;
-    const results = await limiter.run(() =>
-      withBackoff(async () => {
-        const res = await fetchImpl(url, { headers: { 'user-agent': `PobreMochileiro/0.3${contact ? ` (${contact})` : ''}`, accept: 'application/json' } });
+    const results = await limiter.run(() => {
+      signal?.throwIfAborted(); // na fila do limitador quando a operação acabou: não sai
+      const deadlineAt = now().getTime() + deadlineMs;
+      return withBackoff(async () => {
+        const remaining = deadlineAt - now().getTime();
+        if (remaining <= 0) throw Object.assign(new Error('prazo total esgotado'), { name: 'TimeoutError' });
+        const sig = requestSignal(Math.min(requestTimeoutMs, remaining), signal);
+        const res = await fetchImpl(url, { headers: { 'user-agent': `PobreMochileiro/0.3${contact ? ` (${contact})` : ''}`, accept: 'application/json' }, ...(sig && { signal: sig }) });
         if (!res.ok) throw new HttpError(res.status, parseRetryAfter(res.headers?.get?.('retry-after'), () => now().getTime()));
         const json = await res.json();
         if (!Array.isArray(json)) throw new HttpError(502);
         return json;
-      }, { retries, sleep }),
-    );
+      }, { retries, sleep, now: () => now().getTime(), deadlineAt, minAttemptMs, signal });
+    });
     cache.set(key, results);
     return { results, fromCache: false };
   }
 
   return {
-    async resolve(input) {
+    async resolve(input, { signal } = {}) {
       const coords = parseLatLon(input);
       if (coords) {
         const c = { id: null, name: 'Coordenadas informadas', label: `${coords.lat}, ${coords.lon}`, lat: coords.lat, lon: coords.lon, radiusM: 5000 };
@@ -149,7 +155,7 @@ export function createDestinationResolver({
       if (!q) return { status: RESOLVE_STATUS.INVALID, message: 'Digite o nome de uma cidade ou região (2 a 80 caracteres).', candidates: [] };
       let out;
       try {
-        out = await geocode(q);
+        out = await geocode(q, signal);
       } catch (err) {
         return { status: RESOLVE_STATUS.UNAVAILABLE, message: `Não foi possível localizar o destino agora (${err?.status ? `serviço respondeu ${err.status}` : 'sem resposta'}).`, candidates: [] };
       }

@@ -7,7 +7,7 @@
 // a data da revisão da página NÃO prova a idade do preço (qualquer edição na página a atualiza), então sem `lastedit` o preço
 // fica indisponível (o texto original continua visível).
 import { validateCoordinates, haversineMeters } from '../../geo.js';
-import { createRateLimiter, HttpError, parseRetryAfter, withBackoff } from '../../datalayer/cache.js';
+import { createRateLimiter, HttpError, parseRetryAfter, requestSignal, withBackoff } from '../../datalayer/cache.js';
 import { UNCLASSIFIED } from '../categories.js';
 import { parseStayCharge } from '../price.js';
 
@@ -87,6 +87,7 @@ export function parseSleepListings(wikitext, { title, revisionAt, destination, c
 export function createWikivoyageSource({
   fetchImpl = (...a) => fetch(...a), endpoint = DEFAULT_WIKIVOYAGE_API, contact = null, now = () => new Date(),
   limiter = createRateLimiter({ minIntervalMs: 1000 }), sleep, retries = 2,
+  requestTimeoutMs = 20_000, deadlineMs = 24_000, minAttemptMs = 3_000, // dentro dos 25 s da fonte
 } = {}) {
   return {
     id: WIKIVOYAGE_SOURCE.id,
@@ -95,16 +96,23 @@ export function createWikivoyageSource({
       if (!destination.id && !destination.name) return { ok: false, reason: 'sem nome de destino (coordenadas informadas)' };
       return categories.some((c) => ['camping', 'hostel', 'pousada', 'hotel', UNCLASSIFIED].includes(c)) ? { ok: true } : { ok: false, reason: 'categorias sem listagem no Wikivoyage' };
     },
-    async search({ destination, categories }) {
+    async search({ destination, categories, signal }) {
       const title = destination.nameEn || destination.name;
       const url = `${endpoint}?${new URLSearchParams({ action: 'query', prop: 'revisions', rvprop: 'content|timestamp', rvslots: 'main', titles: title, format: 'json', formatversion: '2', redirects: '1' })}`;
-      const json = await limiter.run(() => withBackoff(async () => {
-        const res = await fetchImpl(url, { headers: { 'user-agent': `PobreMochileiro/0.3${contact ? ` (${contact})` : ''}`, accept: 'application/json' } });
+      const json = await limiter.run(() => {
+        signal?.throwIfAborted(); // na fila do limitador quando a operação acabou: não sai
+        const deadlineAt = now().getTime() + deadlineMs;
+        return withBackoff(async () => {
+        const remaining = deadlineAt - now().getTime();
+        if (remaining <= 0) throw Object.assign(new Error('prazo total esgotado'), { name: 'TimeoutError' });
+        const sig = requestSignal(Math.min(requestTimeoutMs, remaining), signal);
+        const res = await fetchImpl(url, { headers: { 'user-agent': `PobreMochileiro/0.3${contact ? ` (${contact})` : ''}`, accept: 'application/json' }, ...(sig && { signal: sig }) });
         if (!res.ok) throw new HttpError(res.status, parseRetryAfter(res.headers?.get?.('retry-after'), () => now().getTime()));
         const body = await res.json();
         if (!body?.query) throw new HttpError(502);
         return body;
-      }, { retries, sleep }));
+        }, { retries, sleep, now: () => now().getTime(), deadlineAt, minAttemptMs, signal });
+      });
       const page = json.query.pages?.[0];
       const rev = page?.revisions?.[0];
       const collectedAt = now().toISOString();

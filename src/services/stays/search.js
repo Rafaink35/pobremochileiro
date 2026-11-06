@@ -7,7 +7,11 @@ import { groupDuplicates } from './dedupe.js';
 import { rankStays } from './rank.js';
 import { haversineMeters, validateCoordinates } from '../geo.js';
 
-const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('tempo esgotado'), { timeout: true })), ms))]);
+const withTimeout = (promise, ms) => {
+  let timer;
+  const limit = new Promise((_, rej) => { timer = setTimeout(() => rej(Object.assign(new Error('tempo esgotado'), { timeout: true })), ms); });
+  return Promise.race([promise, limit]).finally(() => clearTimeout(timer));
+};
 const BUSY_STATUS = new Set([429, 502, 503, 504]);
 const friendly = (err, name = 'A fonte') => (err?.timeout || err?.name === 'TimeoutError' || err?.name === 'AbortError' ? 'tempo esgotado' : BUSY_STATUS.has(err?.status) ? `${name} ocupado ou indisponível (HTTP ${err.status})` : err?.status ? `a fonte respondeu ${err.status}` : `sem resposta da fonte${err?.cause?.code ? ` (${err.cause.code})` : err?.code ? ` (${err.code})` : ''}`);
 const GEOCODER_SOURCE = Object.freeze({ id: 'nominatim', name: 'Nominatim (OpenStreetMap)', license: 'ODbL 1.0', attribution: '© OpenStreetMap contributors', url: 'https://operations.osmfoundation.org/policies/nominatim/' });
@@ -21,7 +25,7 @@ const CATEGORY_NOTE = {
  * Tempo máximo por fonte: `timeoutMs` (25 s) ou o valor de `sourceTimeoutMs[id]` (ex.: Overpass, 75 s). As fontes rodam em paralelo,
  * então o tempo total da pesquisa (depois de localizar o destino) é o maior desses limites.
  */
-export function createStaySearch({ resolver, sources, cache = createStaleCache(), breaker = createBreaker(), now = () => new Date(), timeoutMs = 25_000, sourceTimeoutMs = {} }) {
+export function createStaySearch({ resolver, sources, cache = createStaleCache(), breaker = createBreaker(), now = () => new Date(), timeoutMs = 25_000, sourceTimeoutMs = {}, resolveTimeoutMs = 25_000 }) {
   async function runSource(source, { destination, categories }) {
     const meta = source.describe();
     const base = { id: meta.id, name: meta.name, license: meta.license, licenseUrl: meta.licenseUrl ?? null, attribution: meta.attribution, url: meta.url ?? null };
@@ -32,14 +36,19 @@ export function createStaySearch({ resolver, sources, cache = createStaleCache()
     const fromHit = (status) => ({ ...base, status, records: hit.value.records, note: hit.value.note ?? null, collectedAt: hit.value.collectedAt, fromCache: true, cachedAt: new Date(hit.at).toISOString() });
     if (hit?.fresh) return fromHit('ok');
     if (breaker.isOpen(meta.id)) return hit ? fromHit('stale') : { ...base, status: 'failed', error: 'fonte em pausa após falhas seguidas', records: [] };
+    // Cada fonte tem um sinal de cancelamento: ao terminar, estourar o tempo ou falhar, ele é acionado e a fonte não faz mais
+    // nenhuma consulta (nem nova tentativa, nem chamada que estava na fila do limitador de taxa).
+    const ctrl = new AbortController();
     try {
-      const out = await withTimeout(source.search({ destination, categories }), sourceTimeoutMs[meta.id] ?? timeoutMs);
+      const out = await withTimeout(source.search({ destination, categories, signal: ctrl.signal }), sourceTimeoutMs[meta.id] ?? timeoutMs);
       cache.set(key, out);
       breaker.success(meta.id);
       return { ...base, status: 'ok', records: out.records, note: out.note ?? null, collectedAt: out.collectedAt, fromCache: false, rejected: out.rejected ?? 0 };
     } catch (err) {
       breaker.failure(meta.id);
       return hit ? { ...fromHit('stale'), error: friendly(err, meta.name) } : { ...base, status: 'failed', error: friendly(err, meta.name), records: [] };
+    } finally {
+      ctrl.abort(); // operação desta fonte encerrada
     }
   }
 
@@ -53,7 +62,16 @@ export function createStaySearch({ resolver, sources, cache = createStaleCache()
         const r = Math.round(Math.min(MAX_RADIUS_M, Math.max(MIN_RADIUS_M, Number(radiusM) || 5000)));
         destination = destinationFrom({ name: String(name ?? label ?? 'Destino escolhido').slice(0, 120), nameEn: nameEn ? String(nameEn).slice(0, 120) : null, label: String(label ?? name ?? '').slice(0, 200), lat: chosen.lat, lon: chosen.lon, radiusM: r, countryCode: /^[A-Za-z]{2}$/.test(countryCode ?? '') ? countryCode.toUpperCase() : null, regionCode: /^[A-Z]{2}-[A-Z0-9]{1,3}$/.test(regionCode ?? '') ? regionCode : null, id: name ? 'escolhido' : null });
       } else {
-        const res = await resolver.resolve(query);
+        // Localizar o destino também tem prazo (25 s) e é cancelado ao estourar: sem consulta depois do fim.
+        const geoCtrl = new AbortController();
+        let res;
+        try {
+          res = await withTimeout(resolver.resolve(query, { signal: geoCtrl.signal }), resolveTimeoutMs);
+        } catch {
+          res = { status: RESOLVE_STATUS.UNAVAILABLE, message: 'Não foi possível localizar o destino agora (tempo esgotado).', candidates: [] };
+        } finally {
+          geoCtrl.abort();
+        }
         if (res.status !== RESOLVE_STATUS.OK) return { status: res.status, message: res.message, candidates: res.candidates ?? [], groups: null };
         destination = res.destination;
       }
